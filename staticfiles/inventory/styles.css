@@ -1,0 +1,16 @@
+/* Minimal inventory styles to improve UX */
+.container { max-width: 1100px; margin: 0 auto; padding: 18px; }
+.card { background: #fff; border-radius: 8px; padding: 18px; box-shadow: 0 2px 8px rgba(15,98,254,0.06); }
+.stack { display: grid; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field input, .field select { padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; }
+.actions { display:flex; gap: 8px; align-items:center; }
+.btn { padding: 8px 12px; background: #f3f4f6; border-radius: 6px; text-decoration: none; color: #111827; border: 1px solid #e5e7eb; }
+.btn.primary { background: #0f62fe; color: white; border-color: #0f62fe; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 10px 8px; border-bottom: 1px solid #eef2ff; }
+.table thead th { background: #f8fafc; text-align: left; }
+.inventory-form { max-width: 720px; margin-top: 12px; }
+@media (max-width: 720px) {
+  .field input, .field select { font-size: 16px; }
+}

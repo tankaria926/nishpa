@@ -71,6 +71,12 @@
             <a href="/" class="nav-link active">New Inquiry</a>
             <a href="/inquiries/" class="nav-link">Dashboard</a>
           {% endif %}
+          {% comment %} Inventory quick access button {% endcomment %}
+          {% if 'inventory' in request.path %}
+            <a href="/inventory/" class="nav-link active">Inventory</a>
+          {% else %}
+            <a href="/inventory/" class="nav-link">Inventory</a>
+          {% endif %}
         </nav>
       </header>
       <main>

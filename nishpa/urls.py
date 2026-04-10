@@ -9,4 +9,5 @@ urlpatterns = [
     path('proforma-invoices/', include('proforma_invoice.urls')),
     path('purchase-orders/', include('purchase_order.urls')),
     path('grns/', include('grn.urls')),
+    path('inventory/', include('inventory.urls')),
 ]

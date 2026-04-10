@@ -1,0 +1,50 @@
+{% extends 'inquiry/base.html' %}
+
+{% block title %}{% if editing %}Edit{% else %}Create{% endif %} Product{% endblock %}
+
+{% load static %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'inventory/styles.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="inventory-form card">
+    <h2>{% if editing %}Edit{% else %}Create{% endif %} Product</h2>
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <div class="field">
+        <label>Name</label>
+        <input name="name" value="{{ product.name|default:'' }}" required>
+      </div>
+      <div class="field">
+        <label>SKU</label>
+        <input name="sku" value="{{ product.sku|default:'' }}">
+      </div>
+      <div class="field">
+        <label>Unit Cost</label>
+        <input name="unit_cost" type="number" step="0.01" value="{{ product.unit_cost|default:'0' }}">
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select name="category">
+          <option value="">--</option>
+          {% for c in categories %}
+            {% if product.category %}
+              {% if product.category.id == c.id %}
+                <option value="{{ c.id }}" selected>{{ c.name }}</option>
+              {% else %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+              {% endif %}
+            {% else %}
+              <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn primary">Save</button>
+        <a href="{% url 'inventory:product_list' %}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

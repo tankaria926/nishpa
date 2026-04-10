@@ -1,0 +1,26 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+
+{% block head %}
+  <link rel="stylesheet" href="{% static 'inventory/styles.css' %}">
+{% endblock %}
+
+{% block title %}Inventory{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <h2>Inventory Dashboard</h2>
+    <p><strong>Products:</strong> {{ product_count }}</p>
+
+    <h3>Low stock items</h3>
+    <ul>
+      {% for s in low_stock %}
+        <li><a href="{% url 'inventory:product_detail' s.product.id %}">{{ s.product.name }}</a> — {{ s.quantity }}</li>
+      {% empty %}
+        <li>No low stock items</li>
+      {% endfor %}
+    </ul>
+
+    <p><a class="btn" href="{% url 'inventory:product_list' %}">View Products</a></p>
+  </div>
+{% endblock %}

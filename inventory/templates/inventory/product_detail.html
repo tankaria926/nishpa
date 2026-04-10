@@ -1,0 +1,74 @@
+{% extends 'inquiry/base.html' %}
+
+{% load static %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'inventory/styles.css' %}">
+{% endblock %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="margin:0">{{ product.name }}</h2>
+      <div>
+        <a class="btn" href="{% url 'inventory:product_edit' product.id %}">Edit</a>
+        <a class="btn" href="{% url 'inventory:product_list' %}">Back</a>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:24px;margin-top:12px">
+      <div style="flex:1">
+        <p><strong>SKU:</strong> {{ product.sku }}</p>
+        <p><strong>Category:</strong> {{ product.category }}</p>
+        <p><strong>Cost:</strong> {{ product.unit_cost }}</p>
+      </div>
+      <div style="width:320px">
+        <h3>Stock</h3>
+        <table class="table">
+          <thead><tr><th>Warehouse</th><th>Quantity</th></tr></thead>
+          <tbody>
+            {% for s in stocks %}
+              <tr><td>{{ s.warehouse.name }}</td><td>{{ s.quantity }}</td></tr>
+            {% empty %}
+              <tr><td colspan="2">No stock records</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3 style="margin-top:18px">Adjust Stock</h3>
+    <form action="{% url 'inventory:adjust_stock' product.id %}" method="post" class="stack card" style="padding:12px">
+      {% csrf_token %}
+      <div class="field">
+        <label>Warehouse</label>
+        <select name="warehouse">
+          {% for w in warehouses %}
+            <option value="{{ w.id }}">{{ w.name }}</option>
+          {% empty %}
+            <option value="">(No warehouse)</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <select name="tx_type">
+          <option value="in">Stock In</option>
+          <option value="out">Stock Out</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Quantity</label>
+        <input type="number" name="quantity" min="1" value="1">
+      </div>
+      <div class="field">
+        <label>Reason</label>
+        <input type="text" name="reason">
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn primary">Adjust</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

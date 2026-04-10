@@ -115,5 +115,29 @@ class Command(BaseCommand):
                     p.save()
                 else:
                     created += 1
+                # Also create/update matching inventory product so the Inventory app is populated
+                try:
+                    from inventory.models import Product as InvProduct, Category as InvCategory, Warehouse, Stock
+
+                    inv_cat, _ = InvCategory.objects.get_or_create(name=cat_name)
+                    inv_prod, inv_created = InvProduct.objects.get_or_create(
+                        name=name,
+                        defaults={
+                            'sku': sku,
+                            'category': inv_cat,
+                            'unit_cost': 0,
+                        }
+                    )
+                    if not inv_created:
+                        inv_prod.sku = sku
+                        inv_prod.category = inv_cat
+                        inv_prod.save()
+
+                    # Ensure a default warehouse exists and create initial stock to avoid empty UI actions
+                    warehouse, _ = Warehouse.objects.get_or_create(name='Default Warehouse')
+                    stock, _ = Stock.objects.get_or_create(product=inv_prod, warehouse=warehouse, defaults={'quantity': 10})
+                except Exception:
+                    # inventory app may not be present in all environments — skip silently
+                    pass
 
         self.stdout.write(self.style.SUCCESS(f'Created/updated sample data (new products: {created}).'))
