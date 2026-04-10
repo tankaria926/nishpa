@@ -66,7 +66,7 @@ ASGI_APPLICATION = 'nishpa.asgi.application'
 
 # UAT
 # mindful-hope
-# os.environ["DATABASE_URL"] = "postgresql://postgres:PPoDkzteUmzitWWTnffuXlCoNoWSuFPI@ballast.proxy.rlwy.net:29189/railway"
+os.environ["DATABASE_URL"] = "postgresql://postgres:bOCUOVqNqFCYXWGoAFCyIufUHTiXgHJZ@mainline.proxy.rlwy.net:32698/railway"
 
 db_url = os.environ.get("DATABASE_URL")
 # logging.info(f"DATABASE_URL: {db_url}")
