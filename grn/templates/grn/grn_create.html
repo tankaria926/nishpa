@@ -1,0 +1,214 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}Create GRN{% endblock %}
+
+{% block content %}
+<section class="grn-create-page">
+  <div class="form-header">
+    <h1>Create Goods Received Note</h1>
+    <a href="{% url 'purchase_order:purchase_order_detail' purchase_order.id %}" class="btn btn-secondary">Back to PO</a>
+  </div>
+
+  <form method="post" class="grn-form">
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+    <div class="error-message">
+      {% for error in form.non_field_errors %}
+      <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="form-container">
+      <div class="form-card">
+        <h3>GRN Information</h3>
+        <div class="info-display">
+          <div class="info-item">
+            <label>Purchase Order</label>
+            <p><strong>{{ purchase_order.po_number }}</strong></p>
+          </div>
+          <div class="info-item">
+            <label>Vendor</label>
+            <p><strong>{{ purchase_order.vendor.name }}</strong></p>
+          </div>
+          <div class="info-item">
+            <label>PO Date</label>
+            <p>{{ purchase_order.created_at|date:"M d, Y" }}</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.received_date.id_for_label }}">{{ form.received_date.label }} *</label>
+          {{ form.received_date }}
+          {% if form.received_date.errors %}<div class="error">{{ form.received_date.errors }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+          {{ form.notes }}
+          {% if form.notes.errors %}<div class="error">{{ form.notes.errors }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>Received Items</h3>
+        <p class="form-help">Record quantities received for each item in the purchase order.</p>
+        
+        {% if po_items %}
+        <div class="items-form" id="items-container">
+          {% for po_item in po_items %}
+          <div class="item-section" data-po-item-id="{{ po_item.id }}">
+            <div class="item-header">
+              <h4>Item {{ forloop.counter }}</h4>
+            </div>
+            <div class="item-content">
+              <div class="item-info">
+                <div class="info-row">
+                  <span class="label">Description:</span>
+                  <span class="value">{{ po_item.description }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Ordered:</span>
+                  <span class="value">{{ po_item.quantity }} units @ ${{ po_item.unit_price|floatformat:2 }}</span>
+                </div>
+              </div>
+
+              <div class="item-fields">
+                <div class="field-group">
+                  <label>Quantity Received</label>
+                  <input type="number" name="item_{{ forloop.counter0 }}_qty" min="0" value="0" required>
+                </div>
+                <div class="field-group">
+                  <label>Condition</label>
+                  <select name="item_{{ forloop.counter0 }}_condition">
+                    <option value="good">Good</option>
+                    <option value="damaged">Damaged</option>
+                    <option value="partial">Partial</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label>Batch Number</label>
+                  <input type="text" name="item_{{ forloop.counter0 }}_batch">
+                </div>
+                <div class="field-group">
+                  <label>Remarks</label>
+                  <textarea name="item_{{ forloop.counter0 }}_remarks" rows="2"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No items in this purchase order.</p>
+        {% endif %}
+      </div>
+
+      <div class="form-actions">
+        <a href="{% url 'purchase_order:purchase_order_detail' purchase_order.id %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create GRN</button>
+      </div>
+    </div>
+  </form>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('.grn-form');
+  if (!form) return;
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Collect items data
+    const items = [];
+    const container = document.getElementById('items-container');
+    if (!container) {
+      form.submit();
+      return;
+    }
+    
+    const poItems = container.querySelectorAll('.item-section');
+    
+    poItems.forEach((item, index) => {
+      const poItemId = item.getAttribute('data-po-item-id');
+      const qty = document.querySelector(`input[name="item_${index}_qty"]`).value;
+      const condition = document.querySelector(`select[name="item_${index}_condition"]`).value;
+      const batch = document.querySelector(`input[name="item_${index}_batch"]`).value;
+      const remarks = document.querySelector(`textarea[name="item_${index}_remarks"]`).value;
+      
+      items.push({
+        po_item_id: poItemId,
+        quantity_received: parseInt(qty) || 0,
+        condition: condition,
+        batch_number: batch,
+        remarks: remarks
+      });
+    });
+    
+    // Create hidden input for JSON data
+    const jsonInput = document.createElement('input');
+    jsonInput.type = 'hidden';
+    jsonInput.name = 'items_json';
+    jsonInput.value = JSON.stringify({ items: items });
+    form.appendChild(jsonInput);
+    
+    // Submit form
+    form.submit();
+  });
+});
+</script>
+
+<style>
+.grn-create-page { max-width: 900px; margin: 0 auto; padding: 24px; }
+.form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+.form-header h1 { font-size: 28px; font-weight: 700; margin: 0; color: #111111; }
+.form-container { display: flex; flex-direction: column; gap: 24px; }
+.form-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 24px; }
+.form-card h3 { font-size: 16px; font-weight: 700; color: #111111; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #f3f4f6; }
+.form-help { color: #6b7280; font-size: 14px; margin: 0 0 16px 0; }
+.info-display { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #e5e7eb; }
+.info-item { display: flex; flex-direction: column; }
+.info-item label { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.info-item p { font-size: 14px; color: #111111; margin: 0; }
+.form-group { margin-bottom: 16px; }
+.form-group:last-child { margin-bottom: 0; }
+.form-group label { display: block; font-size: 14px; font-weight: 600; color: #111111; margin-bottom: 8px; }
+.form-group input[type="date"],
+.form-group textarea { display: block; width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: inherit; box-sizing: border-box; }
+.form-group input[type="date"]:focus,
+.form-group textarea:focus { outline: none; border-color: #0f62fe; box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.1); }
+.form-group textarea { resize: vertical; min-height: 80px; }
+.items-form { display: flex; flex-direction: column; gap: 16px; }
+.item-section { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+.item-header { background: #f3f4f6; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+.item-header h4 { font-size: 14px; font-weight: 600; color: #111111; margin: 0; }
+.item-content { padding: 16px; }
+.item-info { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb; }
+.info-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+.info-row .label { color: #6b7280; font-weight: 600; }
+.info-row .value { color: #111111; }
+.item-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.field-group { display: flex; flex-direction: column; }
+.field-group label { font-size: 12px; font-weight: 600; color: #111111; margin-bottom: 4px; }
+.field-group input, .field-group select, .field-group textarea { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; font-family: inherit; }
+.field-group input:focus, .field-group select:focus, .field-group textarea:focus { outline: none; border-color: #0f62fe; box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.1); }
+.field-group textarea { resize: vertical; min-height: 50px; }
+.error { color: #dc2626; font-size: 12px; margin-top: 4px; }
+.error-message { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; color: #991b1b; font-size: 14px; }
+.empty-state { text-align: center; color: #6b7280; padding: 24px; background: #f9fafb; border-radius: 6px; margin: 0; }
+.form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+.btn { padding: 10px 24px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.2s; }
+.btn-primary { background: #0f62fe; color: white; }
+.btn-primary:hover { background: #0353e9; }
+.btn-secondary { background: #f3f4f6; color: #111111; }
+.btn-secondary:hover { background: #e5e7eb; }
+@media (max-width: 768px) {
+  .form-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .form-actions { flex-direction: column; }
+  .btn { width: 100%; text-align: center; }
+  .info-display { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}

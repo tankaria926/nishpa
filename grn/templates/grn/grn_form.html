@@ -1,0 +1,227 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}{% if form.instance.id %}Edit{% else %}New{% endif %} GRN{% endblock %}
+
+{% block content %}
+<section class="grn-form-page">
+  <div class="form-header">
+    <div class="header-content">
+      <h1>Edit GRN</h1>
+      <p class="subtitle">{{ grn.grn_number }}</p>
+    </div>
+    <a href="{% url 'grn:grn_detail' grn.id %}" class="btn btn-secondary">Cancel</a>
+  </div>
+
+  <form method="post" class="grn-form" id="grn-edit-form">
+    {% csrf_token %}
+    
+    <div class="form-container">
+      <div class="form-card">
+        <h3>📋 GRN Information</h3>
+        
+        <div class="info-display">
+          <div class="info-row">
+            <span class="info-label">GRN Number:</span>
+            <span class="info-value">{{ grn.grn_number }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Purchase Order:</span>
+            <span class="info-value"><a href="{% url 'purchase_order:purchase_order_detail' grn.purchase_order.id %}">{{ grn.purchase_order.po_number }}</a></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Vendor:</span>
+            <span class="info-value">{{ grn.purchase_order.vendor.name }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Status:</span>
+            <span class="info-value status-{{ grn.status }}">{{ grn.get_status_display }}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="received_date">Received Date</label>
+          <input type="date" id="received_date" name="received_date" value="{% if grn.received_date %}{{ grn.received_date|date:'Y-m-d' }}{% endif %}" required>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes" rows="4" placeholder="Add any notes about this goods receipt...">{{ grn.notes }}</textarea>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>📦 Received Items</h3>
+        <p class="form-help">Update the quantity received and condition for each item.</p>
+        
+        {% if items %}
+        <div class="items-form" id="items-container">
+          {% for item in items %}
+          <div class="item-section" data-item-id="{{ item.id }}">
+            <div class="item-header">
+              <h4>{{ item.po_item.description }}</h4>
+              <span class="item-meta">Qty: {{ item.po_item.quantity }} units</span>
+            </div>
+            <div class="item-content">
+              <div class="item-grid">
+                <div class="grid-col">
+                  <label>Quantity Received</label>
+                  <input type="number" name="item_{{ item.id }}_qty" class="qty-input" min="0" value="{{ item.quantity_received }}" required>
+                </div>
+                <div class="grid-col">
+                  <label>Quantity Accepted</label>
+                  <input type="number" name="item_{{ item.id }}_accepted" class="accepted-input" min="0" value="{{ item.quantity_accepted }}">
+                </div>
+                <div class="grid-col">
+                  <label>Quantity Rejected</label>
+                  <input type="number" name="item_{{ item.id }}_rejected" class="rejected-input" min="0" value="{{ item.quantity_rejected }}">
+                </div>
+              </div>
+
+              <div class="item-grid">
+                <div class="grid-col">
+                  <label>Condition</label>
+                  <select name="item_{{ item.id }}_condition">
+                    <option value="good" {% if item.condition == 'good' %}selected{% endif %}>✓ Good</option>
+                    <option value="damaged" {% if item.condition == 'damaged' %}selected{% endif %}>✗ Damaged</option>
+                    <option value="partial" {% if item.condition == 'partial' %}selected{% endif %}>⚠ Partial</option>
+                  </select>
+                </div>
+                <div class="grid-col">
+                  <label>Batch Number</label>
+                  <input type="text" name="item_{{ item.id }}_batch" value="{{ item.batch_number }}" placeholder="e.g., BATCH-001">
+                </div>
+                <div class="grid-col">
+                  <label>Expiry Date</label>
+                  <input type="date" name="item_{{ item.id }}_expiry" value="{% if item.expiry_date %}{{ item.expiry_date|date:'Y-m-d' }}{% endif %}">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Remarks</label>
+                <textarea name="item_{{ item.id }}_remarks" rows="2" placeholder="Any special remarks about this item...">{{ item.remarks }}</textarea>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No items in this GRN</p>
+        {% endif %}
+      </div>
+
+      <div class="form-actions">
+        <a href="{% url 'grn:grn_detail' grn.id %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+      </div>
+    </div>
+  </form>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('grn-edit-form');
+  if (!form) return;
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Collect items data
+    const items = [];
+    const container = document.getElementById('items-container');
+    if (container) {
+      const itemSections = container.querySelectorAll('.item-section');
+      
+      itemSections.forEach(section => {
+        const itemId = section.getAttribute('data-item-id');
+        const qtyInput = section.querySelector('.qty-input');
+        const acceptedInput = section.querySelector('.accepted-input');
+        const rejectedInput = section.querySelector('.rejected-input');
+        
+        // Auto-fill accepted if empty
+        if (acceptedInput && !acceptedInput.value && qtyInput.value) {
+          acceptedInput.value = qtyInput.value;
+        }
+        
+        items.push({
+          item_id: itemId,
+          quantity_received: parseInt(qtyInput.value) || 0,
+          quantity_accepted: parseInt(acceptedInput.value) || 0,
+          quantity_rejected: parseInt(rejectedInput.value) || 0,
+          condition: section.querySelector(`select[name="item_${itemId}_condition"]`).value,
+          batch_number: section.querySelector(`input[name="item_${itemId}_batch"]`).value,
+          expiry_date: section.querySelector(`input[name="item_${itemId}_expiry"]`).value,
+          remarks: section.querySelector(`textarea[name="item_${itemId}_remarks"]`).value,
+        });
+      });
+    }
+    
+    // Create hidden input for JSON data
+    const jsonInput = document.createElement('input');
+    jsonInput.type = 'hidden';
+    jsonInput.name = 'items_json';
+    jsonInput.value = JSON.stringify({ items: items });
+    form.appendChild(jsonInput);
+    
+    // Submit form
+    form.submit();
+  });
+});
+</script>
+
+<style>
+.grn-form-page { max-width: 1000px; margin: 0 auto; padding: 24px; }
+.form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb; }
+.header-content h1 { font-size: 28px; font-weight: 700; margin: 0 0 4px 0; color: #111111; }
+.subtitle { color: #6b7280; font-size: 14px; margin: 0; }
+.form-container { display: flex; flex-direction: column; gap: 24px; }
+.form-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 24px; }
+.form-card h3 { font-size: 16px; font-weight: 700; color: #111111; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #f3f4f6; }
+.form-help { color: #6b7280; font-size: 14px; margin: -8px 0 16px 0; }
+.info-display { background: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+.info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+.info-row:last-child { border-bottom: none; }
+.info-label { color: #6b7280; font-weight: 600; }
+.info-value { color: #111111; font-weight: 500; }
+.info-value a { color: #0f62fe; text-decoration: none; }
+.info-value a:hover { text-decoration: underline; }
+.status-draft { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.status-received { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.status-inspected { background: #fce7f3; color: #831843; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.status-accepted { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.status-rejected { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.form-group { margin-bottom: 16px; }
+.form-group:last-child { margin-bottom: 0; }
+.form-group label { display: block; font-size: 14px; font-weight: 600; color: #111111; margin-bottom: 8px; }
+.form-group input, .form-group textarea { display: block; width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: inherit; box-sizing: border-box; }
+.form-group input:focus, .form-group textarea:focus { outline: none; border-color: #0f62fe; box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.1); }
+.form-group textarea { resize: vertical; min-height: 80px; }
+.items-form { display: flex; flex-direction: column; gap: 16px; }
+.item-section { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; transition: all 0.2s; }
+.item-section:hover { border-color: #0f62fe; box-shadow: 0 2px 8px rgba(15, 98, 254, 0.1); }
+.item-header { background: #f3f4f6; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+.item-header h4 { font-size: 14px; font-weight: 600; color: #111111; margin: 0; }
+.item-meta { font-size: 12px; color: #6b7280; }
+.item-content { padding: 16px; }
+.item-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.item-grid:last-child { margin-bottom: 0; }
+.grid-col { display: flex; flex-direction: column; }
+.grid-col label { font-size: 12px; font-weight: 600; color: #111111; margin-bottom: 4px; }
+.grid-col input, .grid-col select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: inherit; }
+.grid-col input:focus, .grid-col select:focus { outline: none; border-color: #0f62fe; box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.1); }
+.item-content textarea { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; width: 100%; min-height: 50px; }
+.item-content textarea:focus { outline: none; border-color: #0f62fe; box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.1); }
+.empty-state { text-align: center; color: #6b7280; padding: 24px; background: #f9fafb; border-radius: 6px; margin: 0; }
+.form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+.btn { padding: 10px 24px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.2s; text-align: center; }
+.btn-primary { background: #0f62fe; color: white; }
+.btn-primary:hover { background: #0353e9; }
+.btn-secondary { background: #f3f4f6; color: #111111; }
+.btn-secondary:hover { background: #e5e7eb; }
+@media (max-width: 768px) {
+  .form-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .form-actions { flex-direction: column-reverse; }
+  .btn { width: 100%; }
+  .item-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}

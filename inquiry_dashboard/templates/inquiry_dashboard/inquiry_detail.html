@@ -1,0 +1,537 @@
+{% extends 'inquiry/base.html' %}
+{% block title %}Inquiry #{{ inquiry.id }}{% endblock %}
+
+{% block content %}
+<section class="inquiry-detail-page">
+  <div class="detail-header">
+    <div class="header-left">
+      <a href="{% url 'inquiry_dashboard:inquiry_list' %}" class="back-link">← Back to List</a>
+      <h1>Inquiry #{{ inquiry.id }}</h1>
+    </div>
+    <div class="header-actions">
+      <a href="{% url 'quotation:quotation_create_from_inquiry' inquiry.id %}" class="btn btn-primary">
+        + Create Quotation
+      </a>
+    </div>
+  </div>
+
+  <div class="detail-container">
+    <!-- Left Column: Contact Info -->
+    <div class="detail-section contact-section">
+      <h2>Contact Information</h2>
+      
+      <div class="info-group">
+        <label>Full Name</label>
+        <p>{{ inquiry.full_name }}</p>
+      </div>
+
+      <div class="info-group">
+        <label>Email</label>
+        <p><a href="mailto:{{ inquiry.email }}">{{ inquiry.email }}</a></p>
+      </div>
+
+      <div class="info-group">
+        <label>Phone</label>
+        <p>
+          {% if inquiry.phone %}
+            <a href="tel:{{ inquiry.phone }}">{{ inquiry.phone }}</a>
+          {% else %}
+            <span class="text-muted">Not provided</span>
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="info-group">
+        <label>Message</label>
+        <p class="message-text">{{ inquiry.message|linebreaks }}</p>
+      </div>
+
+      <div class="info-group">
+        <label>Status</label>
+        <form id="status-form" class="status-form">
+          {% csrf_token %}
+          <select id="detail-status-select" name="status" class="status-select-large">
+            {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if inquiry.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-primary">Update Status</button>
+        </form>
+      </div>
+
+      <div class="info-group">
+        <label>Submitted</label>
+        <p>{{ inquiry.created_at|date:"M d, Y - H:i" }}</p>
+      </div>
+
+      <div class="info-group">
+        <label>Last Updated</label>
+        <p>{{ inquiry.updated_at|date:"M d, Y - H:i" }}</p>
+      </div>
+    </div>
+
+    <!-- Right Column: Products -->
+    <div class="detail-section products-section">
+      <h2>Inquiry Items</h2>
+      
+      {% if items %}
+        <div class="items-list">
+          {% for item in items %}
+          <div class="item-card">
+            <div class="item-image">
+              {% if item.product.image_url %}
+                <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" onerror="this.src='https://images.pexels.com/photos/3962287/pexels-photo-3962287.jpeg?w=640'">
+              {% else %}
+                <img src="https://images.pexels.com/photos/3962287/pexels-photo-3962287.jpeg?w=640" alt="No image">
+              {% endif %}
+            </div>
+            <div class="item-content">
+              <h4>{{ item.product.name }}</h4>
+              <p class="category">{{ item.product.category.name }}</p>
+              {% if item.product.sku %}
+              <p class="sku">SKU: {{ item.product.sku }}</p>
+              {% endif %}
+              <div class="item-footer">
+                <span class="quantity">Qty: <strong>{{ item.quantity }}</strong></span>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-message">No items in this inquiry</div>
+      {% endif %}
+    </div>
+
+    <!-- Quotations Section -->
+    <div class="detail-section quotations-section">
+      <h2>Related Quotations</h2>
+      
+      {% if quotations %}
+        <div class="quotations-list">
+          {% for quotation in quotations %}
+          <div class="quotation-card">
+            <div class="quotation-header">
+              <a href="{% url 'quotation:quotation_detail' quotation.id %}" class="quotation-number">
+                {{ quotation.quote_number }}
+              </a>
+              <span class="status-badge status-{{ quotation.status|lower }}">
+                {{ quotation.get_status_display }}
+              </span>
+            </div>
+            <div class="quotation-info">
+              <p><strong>Amount:</strong> ${{ quotation.get_total|floatformat:2 }}</p>
+              <p><strong>Created:</strong> {{ quotation.created_at|date:"M d, Y" }}</p>
+              {% if quotation.valid_until %}
+              <p><strong>Valid Until:</strong> {{ quotation.valid_until|date:"M d, Y" }}</p>
+              {% endif %}
+            </div>
+            <div class="quotation-actions">
+              <a href="{% url 'quotation:quotation_detail' quotation.id %}" class="btn-small">View</a>
+              <a href="{% url 'quotation:quotation_pdf' quotation.id %}" class="btn-small" target="_blank">PDF</a>
+              {% if quotation.status == 'draft' %}
+              <a href="{% url 'quotation:quotation_edit' quotation.id %}" class="btn-small">Edit</a>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-message">No quotations yet. <a href="{% url 'quotation:quotation_create_from_inquiry' inquiry.id %}">Create one</a></div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<style>
+.inquiry-detail-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.detail-header .back-link {
+  color: #0f62fe;
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.detail-header .back-link:hover {
+  text-decoration: underline;
+}
+
+.detail-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  color: #111;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: #0f62fe;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0d47a1;
+}
+
+.detail-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.detail-section {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 24px;
+}
+
+.detail-section h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.info-group {
+  margin-bottom: 20px;
+}
+
+.info-group:last-child {
+  margin-bottom: 0;
+}
+
+.info-group label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.info-group p {
+  margin: 0;
+  color: #333;
+  font-size: 14px;
+}
+
+.message-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.6;
+}
+
+.status-form {
+  display: flex;
+  gap: 8px;
+}
+
+.status-select-large {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.status-select-large:focus {
+  outline: none;
+  border-color: #0f62fe;
+}
+
+.products-section {
+  grid-column: 1 / -1;
+}
+
+.items-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.item-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.item-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #0f62fe;
+}
+
+.item-image {
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background: #f9fafb;
+}
+
+.item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.item-content {
+  padding: 12px;
+}
+
+.item-content h4 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+
+.item-content .category {
+  margin: 0 0 4px 0;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.item-content .sku {
+  margin: 0 0 8px 0;
+  font-size: 11px;
+  color: #d1d5db;
+}
+
+.item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.item-footer .quantity {
+  font-size: 12px;
+  color: #666;
+}
+
+.quotations-section {
+  grid-column: 1 / -1;
+}
+
+.quotations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quotation-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f9fafb;
+  transition: all 0.2s;
+}
+
+.quotation-card:hover {
+  border-color: #0f62fe;
+  background: white;
+  box-shadow: 0 2px 8px rgba(15, 98, 254, 0.1);
+}
+
+.quotation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.quotation-number {
+  font-weight: 700;
+  color: #0f62fe;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.quotation-number:hover {
+  text-decoration: underline;
+}
+
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.status-draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.status-pending {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.status-sent {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.status-accepted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.quotation-info {
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.quotation-info p {
+  margin: 4px 0;
+  color: #666;
+}
+
+.quotation-info p strong {
+  color: #333;
+}
+
+.quotation-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: white;
+  color: #0f62fe;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.btn-small:hover {
+  background: #0f62fe;
+  color: white;
+  border-color: #0f62fe;
+}
+
+.empty-message {
+  padding: 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 14px;
+  font-style: italic;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.empty-message a {
+  color: #0f62fe;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.empty-message a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .detail-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .header-actions {
+    width: 100%;
+  }
+  
+  .header-actions .btn {
+    width: 100%;
+  }
+  
+  .items-list {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+document.getElementById('status-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const statusSelect = document.getElementById('detail-status-select');
+  const newStatus = statusSelect.value;
+  const inquiryId = {{ inquiry.id }};
+  
+  fetch("{% url 'inquiry_dashboard:update_status' inquiry.id %}", {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'status=' + newStatus
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Status updated successfully: ' + data.status_display);
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => console.error('Error:', error));
+});
+</script>
+{% endblock %}

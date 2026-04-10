@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Quotation - {{ quotation.quote_number }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .pdf-container {
+            max-width: 8.5in;
+            height: 11in;
+            margin: 0 auto;
+            padding: 0.5in;
+            background: white;
+        }
+
+        .header-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #0f62fe;
+            padding-bottom: 20px;
+        }
+
+        .company-info h1 {
+            font-size: 28px;
+            color: #0f62fe;
+            margin-bottom: 5px;
+        }
+
+        .company-info p {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .quotation-title {
+            text-align: right;
+        }
+
+        .quotation-title h2 {
+            font-size: 24px;
+            color: #0f62fe;
+            margin-bottom: 10px;
+        }
+
+        .quotation-meta {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .quotation-meta strong {
+            color: #333;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111;
+            background: #f3f4f6;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            border-left: 4px solid #0f62fe;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+
+        .info-item label {
+            font-weight: 700;
+            color: #666;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .info-item p {
+            color: #333;
+        }
+
+        .description-text {
+            font-size: 12px;
+            color: #333;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+
+        .items-table thead {
+            background: #f3f4f6;
+            border-top: 2px solid #0f62fe;
+            border-bottom: 2px solid #0f62fe;
+        }
+
+        .items-table th {
+            padding: 8px;
+            text-align: left;
+            font-weight: 700;
+            color: #111;
+        }
+
+        .items-table td {
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .items-table td.text-right {
+            text-align: right;
+        }
+
+        .items-table tbody tr:nth-child(even) {
+            background: #fafbfc;
+        }
+
+        .summary-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .summary-row.total {
+            border-top: 2px solid #d1d5db;
+            padding-top: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            color: #0f62fe;
+        }
+
+        .summary-label {
+            color: #666;
+        }
+
+        .summary-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .notes-section {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 11px;
+            color: #333;
+            margin-top: 15px;
+        }
+
+        .notes-section h4 {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #111;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .pdf-container {
+                max-width: 100%;
+                height: auto;
+                padding: 0.5in;
+                box-shadow: none;
+            }
+        }
+
+        @page {
+            size: letter;
+            margin: 0.5in;
+        }
+    </style>
+</head>
+<body>
+    <div class="pdf-container">
+        <!-- Header -->
+        <div class="header-section">
+            <div class="company-info">
+                <h1>Nishpa ERP</h1>
+                <p>Enterprise Resource Planning Solution</p>
+            </div>
+            <div class="quotation-title">
+                <h2>QUOTATION</h2>
+                <div class="quotation-meta">
+                    <strong>Quote #:</strong> <span>{{ quotation.quote_number }}</span>
+                    <strong>Date:</strong> <span>{{ quotation.created_at|date:"M d, Y" }}</span>
+                    <strong>Valid Until:</strong> <span>{% if quotation.valid_until %}{{ quotation.valid_until|date:"M d, Y" }}{% else %}N/A{% endif %}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Information -->
+        <div class="section">
+            <div class="section-title">CUSTOMER INFORMATION</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Name</label>
+                    <p>{{ quotation.customer_name }}</p>
+                </div>
+                <div class="info-item">
+                    <label>Email</label>
+                    <p>{{ quotation.customer_email }}</p>
+                </div>
+                <div class="info-item">
+                    <label>Phone</label>
+                    <p>{{ quotation.customer_phone|default:"—" }}</p>
+                </div>
+                <div class="info-item">
+                    <label>Company</label>
+                    <p>{{ quotation.customer_company|default:"—" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        {% if quotation.subject or quotation.description %}
+        <div class="section">
+            {% if quotation.subject %}
+            <div class="section-title">{{ quotation.subject }}</div>
+            {% endif %}
+            {% if quotation.description %}
+            <div class="description-text">{{ quotation.description }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Line Items -->
+        {% if quotation_items %}
+        <div class="section">
+            <div class="section-title">LINE ITEMS</div>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th class="text-right" style="width: 80px;">Qty</th>
+                        <th class="text-right" style="width: 100px;">Unit Price</th>
+                        <th class="text-right" style="width: 100px;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in quotation_items %}
+                    <tr>
+                        <td>{{ item.description }}</td>
+                        <td class="text-right">{{ item.quantity }}</td>
+                        <td class="text-right">${{ item.unit_price|floatformat:2 }}</td>
+                        <td class="text-right">${{ item.get_total|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Summary -->
+        <div class="summary-section">
+            <div class="summary-row">
+                <span class="summary-label">Subtotal:</span>
+                <span class="summary-value">${{ quotation.get_subtotal|floatformat:2 }}</span>
+            </div>
+            {% if quotation.tax_rate > 0 %}
+            <div class="summary-row">
+                <span class="summary-label">Tax ({{ quotation.tax_rate }}%):</span>
+                <span class="summary-value">${{ quotation.get_tax_amount|floatformat:2 }}</span>
+            </div>
+            {% endif %}
+            <div class="summary-row total">
+                <span>TOTAL:</span>
+                <span>${{ quotation.get_total|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <!-- Notes & Terms -->
+        {% if quotation.notes or quotation.terms %}
+        <div class="notes-section">
+            {% if quotation.notes %}
+            <h4>Notes:</h4>
+            <p>{{ quotation.notes }}</p>
+            {% endif %}
+            {% if quotation.terms %}
+            <h4 style="margin-top: 10px;">Terms & Conditions:</h4>
+            <p>{{ quotation.terms }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>This quotation is valid until {{ quotation.valid_until|date:"M d, Y"|default:"the specified date" }}. Please contact us for any questions.</p>
+            <p style="margin-top: 10px;">Generated on {{ "now"|date:"M d, Y H:i" }}</p>
+        </div>
+    </div>
+</body>
+</html>

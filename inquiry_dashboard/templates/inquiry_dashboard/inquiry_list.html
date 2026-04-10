@@ -1,0 +1,147 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}Inquiry Management{% endblock %}
+
+{% block content %}
+<section class="inquiry-dashboard">
+  <div class="dashboard-header">
+    <h1>Inquiry Management</h1>
+    <p>View and manage all inquiries</p>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-container">
+    <div class="stat-card">
+      <div class="stat-icon pending">📋</div>
+      <div class="stat-content">
+        <h3>Pending</h3>
+        <p class="stat-number">{{ status_counts.pending }}</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon in-progress">⏳</div>
+      <div class="stat-content">
+        <h3>In Progress</h3>
+        <p class="stat-number">{{ status_counts.in_progress }}</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon completed">✓</div>
+      <div class="stat-content">
+        <h3>Completed</h3>
+        <p class="stat-number">{{ status_counts.completed }}</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon cancelled">✕</div>
+      <div class="stat-content">
+        <h3>Cancelled</h3>
+        <p class="stat-number">{{ status_counts.cancelled }}</p>
+      </div>
+    </div>
+    <div class="stat-card total">
+      <div class="stat-icon">📊</div>
+      <div class="stat-content">
+        <h3>Total</h3>
+        <p class="stat-number">{{ total }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <form id="filter-form" class="filters-form">
+      <div class="filter-group">
+        <input 
+          type="text" 
+          id="search-input" 
+          name="search" 
+          placeholder="Search by name, email, phone..." 
+          value="{{ search_query }}"
+          class="search-input"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="status-filter">Status</label>
+        <select id="status-filter" name="status" class="filter-select">
+          <option value="">All Statuses</option>
+          {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="date-filter">Date Range</label>
+        <select id="date-filter" name="date_range" class="filter-select">
+          <option value="">All Time</option>
+          <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+          <option value="week" {% if date_filter == 'week' %}selected{% endif %}>Last 7 Days</option>
+          <option value="month" {% if date_filter == 'month' %}selected{% endif %}>Last 30 Days</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="sort-filter">Sort By</label>
+        <select id="sort-filter" name="sort_by" class="filter-select">
+          <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest First</option>
+          <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest First</option>
+          <option value="full_name" {% if sort_by == 'full_name' %}selected{% endif %}>Name (A-Z)</option>
+          <option value="-full_name" {% if sort_by == '-full_name' %}selected{% endif %}>Name (Z-A)</option>
+          <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="per-page">Items Per Page</label>
+        <select id="per-page" name="per_page" class="filter-select">
+          <option value="5" {% if per_page == 5 %}selected{% endif %}>5</option>
+          <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+        </select>
+      </div>
+
+      <button type="reset" class="btn-reset">Reset Filters</button>
+    </form>
+  </div>
+
+  <!-- Results Info -->
+  <div class="results-info">
+    <p>Showing <strong>{{ inquiries|length }}</strong> of <strong>{{ total_inquiries }}</strong> inquiries</p>
+  </div>
+
+  <!-- Table Container -->
+  <div id="table-container" class="table-container">
+    {% include 'inquiry_dashboard/inquiries_table.html' %}
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="pagination">
+    {% if current_page > 1 %}
+      <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}&sort_by={{ sort_by }}&per_page={{ per_page }}" class="page-link first">« First</a>
+      <a href="?page={{ current_page|add:'-1' }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}&sort_by={{ sort_by }}&per_page={{ per_page }}" class="page-link prev">‹ Previous</a>
+    {% endif %}
+
+    <div class="page-numbers">
+      {% for num in page_numbers %}
+        {% if num == current_page %}
+          <span class="page-num active">{{ num }}</span>
+        {% else %}
+          <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}&sort_by={{ sort_by }}&per_page={{ per_page }}" class="page-link">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if current_page < total_pages %}
+      <a href="?page={{ current_page|add:'1' }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}&sort_by={{ sort_by }}&per_page={{ per_page }}" class="page-link next">Next ›</a>
+      <a href="?page={{ total_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}&sort_by={{ sort_by }}&per_page={{ per_page }}" class="page-link last">Last »</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<script src="{% static 'inquiry_dashboard/filter.js' %}"></script>
+{% endblock %}

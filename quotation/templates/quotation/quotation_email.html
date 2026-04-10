@@ -1,0 +1,309 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0f62fe 0%, #0d47a1 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .greeting {
+            margin-bottom: 20px;
+        }
+        .greeting p {
+            margin: 0 0 10px 0;
+        }
+        .quotation-details {
+            background: #f3f4f6;
+            border-left: 4px solid #0f62fe;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .items-section {
+            margin: 25px 0;
+        }
+        .items-section h3 {
+            margin: 0 0 15px 0;
+            color: #111;
+            font-size: 16px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+        .items-table thead {
+            background: #e5e7eb;
+            border-bottom: 2px solid #d1d5db;
+        }
+        .items-table th {
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            color: #111;
+        }
+        .items-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .items-table td.text-right {
+            text-align: right;
+        }
+        .items-table tbody tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        .summary {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .summary-row.total {
+            border-top: 2px solid #d1d5db;
+            padding-top: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            color: #0f62fe;
+        }
+        .cta-button {
+            display: inline-block;
+            background: #0f62fe;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .cta-button:hover {
+            background: #0d47a1;
+        }
+        .notes-section {
+            background: #fef9e7;
+            border-left: 4px solid #fbbf24;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #666;
+        }
+        .notes-section h4 {
+            margin: 0 0 10px 0;
+            color: #111;
+        }
+        .notes-section p {
+            margin: 0;
+        }
+        .footer {
+            background: #f3f4f6;
+            border-top: 1px solid #e5e7eb;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .contact-info {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-size: 13px;
+        }
+        .contact-info p {
+            margin: 5px 0;
+        }
+        strong {
+            color: #111;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Header -->
+            <div class="header">
+                <h1>Quotation Received</h1>
+                <p>Your quotation is ready for review</p>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+                <!-- Greeting -->
+                <div class="greeting">
+                    <p>Dear <strong>{{ quotation.customer_name }}</strong>,</p>
+                    <p>We're pleased to present the quotation below for your review. This proposal includes all the details you requested.</p>
+                </div>
+
+                <!-- Quotation Details -->
+                <div class="quotation-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Quotation #:</span>
+                        <span class="detail-value">{{ quotation.quote_number }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value">{{ quotation.created_at|date:"F d, Y" }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Valid Until:</span>
+                        <span class="detail-value">{% if quotation.valid_until %}{{ quotation.valid_until|date:"F d, Y" }}{% else %}Upon request{% endif %}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Total Amount:</span>
+                        <span class="detail-value" style="color: #14a44d; font-weight: 700; font-size: 16px;">${{ quotation.get_total|floatformat:2 }}</span>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                {% if quotation.description %}
+                <p>{{ quotation.description|linebreaks }}</p>
+                {% endif %}
+
+                <!-- Line Items -->
+                {% if quotation_items %}
+                <div class="items-section">
+                    <h3>Line Items</h3>
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-right" style="width: 70px;">Qty</th>
+                                <th class="text-right" style="width: 100px;">Unit Price</th>
+                                <th class="text-right" style="width: 100px;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in quotation_items %}
+                            <tr>
+                                <td>{{ item.description }}</td>
+                                <td class="text-right">{{ item.quantity }}</td>
+                                <td class="text-right">${{ item.unit_price|floatformat:2 }}</td>
+                                <td class="text-right"><strong>${{ item.get_total|floatformat:2 }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+
+                <!-- Summary -->
+                <div class="summary">
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span>${{ quotation.get_subtotal|floatformat:2 }}</span>
+                    </div>
+                    {% if quotation.tax_rate > 0 %}
+                    <div class="summary-row">
+                        <span>Tax ({{ quotation.tax_rate }}%):</span>
+                        <span>${{ quotation.get_tax_amount|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="summary-row total">
+                        <span>TOTAL:</span>
+                        <span>${{ quotation.get_total|floatformat:2 }}</span>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                {% if quotation.notes %}
+                <div class="notes-section">
+                    <h4>Notes:</h4>
+                    <p>{{ quotation.notes|linebreaks }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Terms -->
+                {% if quotation.terms %}
+                <div class="notes-section">
+                    <h4>Terms & Conditions:</h4>
+                    <p>{{ quotation.terms|linebreaks }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Call to Action -->
+                {% if view_url %}
+                <center>
+                    <a href="{{ view_url }}" class="cta-button">View Quotation</a>
+                </center>
+                {% endif %}
+
+                <!-- Contact Info -->
+                <div class="contact-info">
+                    <p><strong>Questions?</strong></p>
+                    <p>If you have any questions about this quotation or need clarification on any items, please don't hesitate to contact us.</p>
+                    <p><strong>Email:</strong> <a href="mailto:support@nishpaerp.com">support@nishpaerp.com</a></p>
+                </div>
+
+                <!-- Closing -->
+                <p style="margin-top: 20px;">Thank you for considering our proposal. We look forward to working with you!</p>
+                <p style="margin: 10px 0 0 0;">Best regards,<br><strong>Nishpa ERP Team</strong></p>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <p><strong>Nishpa ERP</strong> - Enterprise Resource Planning Solution</p>
+                <p>This quotation is confidential and intended only for the recipient shown above.</p>
+                <p>Generated on {{ "now"|date:"F d, Y" }}</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

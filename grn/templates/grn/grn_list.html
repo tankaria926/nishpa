@@ -1,0 +1,118 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}Goods Received Notes{% endblock %}
+
+{% block content %}
+<section class="grn-list-page">
+  <div class="list-header">
+    <h1>Goods Received Notes</h1>
+    <a href="{% url 'purchase_order:purchase_order_list' %}" class="btn btn-secondary">← Purchase Orders</a>
+  </div>
+
+  <div class="list-filters">
+    <form method="get" class="filter-form">
+      <div class="search-group">
+        <input type="text" name="search" placeholder="Search GRNs..." value="{{ search_query }}" class="search-input">
+      </div>
+      <div class="filter-group">
+        <select name="status" class="filter-select">
+          <option value="">All Statuses</option>
+          {% for status_value, status_label in status_choices %}
+          <option value="{{ status_value }}" {% if status_filter == status_value %}selected{% endif %}>{{ status_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-secondary">Filter</button>
+    </form>
+  </div>
+
+  {% if grns %}
+  <div class="grns-table-container">
+    <table class="grns-table">
+      <thead>
+        <tr>
+          <th>GRN Number</th>
+          <th>PO Number</th>
+          <th>Vendor</th>
+          <th>Status</th>
+          <th>Items</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for grn in grns %}
+        <tr>
+          <td><a href="{% url 'grn:grn_detail' grn.id %}" class="grn-link">{{ grn.grn_number }}</a></td>
+          <td><a href="{% url 'purchase_order:purchase_order_detail' grn.purchase_order.id %}" class="po-link">{{ grn.purchase_order.po_number }}</a></td>
+          <td>{{ grn.purchase_order.vendor.name }}</td>
+          <td><span class="status-badge status-{{ grn.status|lower }}">{{ grn.get_status_display }}</span></td>
+          <td class="text-center">{{ grn.items.count }}</td>
+          <td class="date">{{ grn.created_at|date:"M d, Y" }}</td>
+          <td class="actions">
+            <a href="{% url 'grn:grn_detail' grn.id %}" class="btn-view">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📦</div>
+    <h3>No GRNs Found</h3>
+    <p>Create a GRN from a purchase order when goods arrive.</p>
+    <a href="{% url 'purchase_order:purchase_order_list' %}" class="btn btn-primary">View Purchase Orders</a>
+  </div>
+  {% endif %}
+</section>
+
+<style>
+.grn-list-page { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+.list-header h1 { font-size: 32px; font-weight: 700; color: #111111; margin: 0; }
+.list-filters { background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 16px; margin-bottom: 24px; }
+.filter-form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.search-group { flex: 1; min-width: 250px; }
+.search-input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+.filter-group { flex: 1; min-width: 200px; }
+.filter-select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+.grns-table-container { overflow-x: auto; background: white; border-radius: 12px; border: 1px solid #e5e7eb; }
+.grns-table { width: 100%; border-collapse: collapse; margin: 0; }
+.grns-table thead { background: #f9fafb; }
+.grns-table th { padding: 16px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; }
+.grns-table th.text-center { text-align: center; }
+.grns-table td { padding: 16px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+.grns-table tbody tr:hover { background: #f9fafb; }
+.grn-link { color: #0f62fe; text-decoration: none; font-weight: 600; }
+.grn-link:hover { text-decoration: underline; }
+.po-link { color: #0f62fe; text-decoration: none; }
+.po-link:hover { text-decoration: underline; }
+.text-center { text-align: center; }
+.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block; }
+.status-badge.status-draft { background: #fef3c7; color: #92400e; }
+.status-badge.status-received { background: #dbeafe; color: #1e40af; }
+.status-badge.status-inspected { background: #fce7f3; color: #831843; }
+.status-badge.status-accepted { background: #dcfce7; color: #166534; }
+.status-badge.status-rejected { background: #fee2e2; color: #991b1b; }
+.date { color: #6b7280; }
+.actions { text-align: center; }
+.btn-view { padding: 6px 12px; background: #0f62fe; color: white; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600; transition: all 0.2s; display: inline-block; }
+.btn-view:hover { background: #0353e9; }
+.empty-state { text-align: center; padding: 60px 24px; background: white; border-radius: 12px; border: 1px solid #e5e7eb; }
+.empty-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state h3 { font-size: 20px; font-weight: 700; color: #111111; margin: 0 0 8px 0; }
+.empty-state p { color: #6b7280; margin: 0 0 24px 0; }
+.btn { padding: 10px 24px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.2s; }
+.btn-primary { background: #0f62fe; color: white; }
+.btn-primary:hover { background: #0353e9; }
+.btn-secondary { background: #f3f4f6; color: #111111; }
+.btn-secondary:hover { background: #e5e7eb; }
+@media (max-width: 768px) {
+  .list-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .filter-form { flex-direction: column; }
+  .search-group, .filter-group { min-width: auto; }
+  .grns-table th, .grns-table td { padding: 12px; font-size: 12px; }
+}
+</style>
+{% endblock %}

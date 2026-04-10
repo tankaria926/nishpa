@@ -1,0 +1,49 @@
+python manage.py migration -- create tables
+python manage.py createsuperuser -- create super user
+python manage.py makemigrations -- make migration
+python manage.py sqlmigrate blog 0001 -- print sql code
+python manage.py shell -- to work with django object in shell
+python manage.py startapp users
+
+django-admin startproject nishpa
+python manage.py runserver
+
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser
+Admin User 
+		vivek
+		viveksoni31390@gmail.com
+		Vivek$1234
+
+python manage.py create_sample_data
+python manage.py populate_vendors
+
+import django
+django.setup() 
+from Users.models import CustomerMaster, InquiryMaster
+from Products.models import UserProductDetail
+InquiryMaster.objects.all().delete()
+CustomerMaster.objects.all().delete()
+UserProductDetail.objects.all().delete()
+
+from installations.models import Installation
+Installation.objects.all().delete()
+
+python manage.py import_master_json --file path/to/master_seed.json
+
+python manage.py populate_transporters
+
+Steps to copy postgresql to sqlite:
+1)
+set PYTHONUTF8=1
+set PYTHONIOENCODING=utf-8
+
+2)
+In settings.py, set your DATABASES to point to the PostgreSQL URL
+python manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.Permission -e admin.logentry -o data.json
+
+3)
+In settings.py, switch back to SQLite
+python manage.py migrate
+python manage.py loaddata data.json

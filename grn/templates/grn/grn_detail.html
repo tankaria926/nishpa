@@ -1,0 +1,248 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}GRN - {{ grn.grn_number }}{% endblock %}
+
+{% block content %}
+<section class="grn-detail-page">
+  <div class="detail-header">
+    <div class="header-content">
+      <div class="breadcrumb">
+        <a href="{% url 'grn:grn_list' %}">GRNs</a>
+        <span>/</span>
+        <span>{{ grn.grn_number }}</span>
+      </div>
+      <div class="header-title">
+        <h1>{{ grn.grn_number }}</h1>
+        <span class="status-badge status-{{ grn.status|lower }}">{{ grn.get_status_display }}</span>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      {% if grn.status == 'draft' %}
+      <a href="{% url 'grn:grn_edit' grn.id %}" class="btn btn-primary">Edit</a>
+      {% endif %}
+      {% if grn.status in 'received,inspected' %}
+      <form action="{% url 'grn:grn_inspect' grn.id %}" method="post" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-info">Mark as Inspected</button>
+      </form>
+      <form action="{% url 'grn:grn_reject' grn.id %}" method="post" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Reject GRN</button>
+      </form>
+      {% endif %}
+      {% if grn.status == 'inspected' %}
+      <form action="{% url 'grn:grn_accept' grn.id %}" method="post" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">Accept GRN</button>
+      </form>
+      {% endif %}
+      <a href="{% url 'grn:grn_pdf' grn.id %}" class="btn btn-secondary" target="_blank">Download PDF</a>
+    </div>
+  </div>
+
+  <div class="grn-content">
+    <div class="grn-card">
+      <div class="section info-section">
+        <h3>GRN Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>GRN Number</label>
+            <p>{{ grn.grn_number }}</p>
+          </div>
+          <div class="info-item">
+            <label>PO Number</label>
+            <p><a href="{% url 'purchase_order:purchase_order_detail' grn.purchase_order.id %}">{{ grn.purchase_order.po_number }}</a></p>
+          </div>
+          <div class="info-item">
+            <label>Vendor</label>
+            <p><a href="{% url 'purchase_order:vendor_detail' grn.purchase_order.vendor.id %}">{{ grn.purchase_order.vendor.name }}</a></p>
+          </div>
+          <div class="info-item">
+            <label>Status</label>
+            <p><span class="status-badge status-{{ grn.status|lower }}">{{ grn.get_status_display }}</span></p>
+          </div>
+          <div class="info-item">
+            <label>Created</label>
+            <p>{{ grn.created_at|date:"M d, Y" }}</p>
+          </div>
+          <div class="info-item">
+            <label>Received Date</label>
+            <p>{{ grn.received_date|date:"M d, Y"|default:"—" }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section items-section">
+        <h3>Received Items</h3>
+        {% if grn_items %}
+        <div class="items-table-container">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th class="text-right">Ordered</th>
+                <th class="text-right">Received</th>
+                <th class="text-right">Accepted</th>
+                <th class="text-right">Rejected</th>
+                <th>Condition</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in grn_items %}
+              <tr>
+                <td>{{ item.po_item.description }}</td>
+                <td class="text-right">{{ item.po_item.quantity }}</td>
+                <td class="text-right highlighted">{{ item.quantity_received }}</td>
+                <td class="text-right">{{ item.quantity_accepted }}</td>
+                <td class="text-right">{{ item.quantity_rejected }}</td>
+                <td>
+                  {% if item.condition %}
+                  <span class="condition condition-{{ item.condition|lower }}">{{ item.get_condition_display }}</span>
+                  {% else %}
+                  —
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="empty-state">No items in this GRN</p>
+        {% endif %}
+      </div>
+
+      {% if grn.notes %}
+      <div class="section notes-section">
+        <h3>Notes</h3>
+        <div class="text-content">{{ grn.notes|linebreaks }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <aside class="sidebar">
+      <div class="sidebar-card">
+        <h4>Timeline</h4>
+        <div class="timeline-item">
+          <span class="label">Created</span>
+          <span class="value">{{ grn.created_at|date:"M d, Y H:i" }}</span>
+        </div>
+        {% if grn.received_date %}
+        <div class="timeline-item">
+          <span class="label">Received</span>
+          <span class="value">{{ grn.received_date|date:"M d, Y" }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="sidebar-card">
+        <h4>Summary</h4>
+        <div class="stat-item">
+          <span class="label">Items</span>
+          <span class="value">{{ grn_items.count }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Total Received</span>
+          <span class="value">{{ total_received }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Total Accepted</span>
+          <span class="value">{{ total_accepted }}</span>
+        </div>
+        {% if total_rejected > 0 %}
+        <div class="stat-item rejected">
+          <span class="label">Total Rejected</span>
+          <span class="value">{{ total_rejected }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="sidebar-card actions-card">
+        <h4>Actions</h4>
+        <div class="action-list">
+          <a href="{% url 'purchase_order:purchase_order_detail' grn.purchase_order.id %}" class="btn btn-block btn-secondary">View PO</a>
+          <a href="{% url 'grn:grn_list' %}" class="btn btn-block btn-secondary">Back to List</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<style>
+.grn-detail-page { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb; }
+.header-content { flex: 1; }
+.breadcrumb { font-size: 12px; color: #6b7280; margin-bottom: 12px; }
+.breadcrumb a { color: #0f62fe; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.header-title { display: flex; align-items: center; gap: 16px; }
+.header-title h1 { font-size: 32px; font-weight: 700; margin: 0; color: #111111; }
+.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.status-badge.status-draft { background: #fef3c7; color: #92400e; }
+.status-badge.status-received { background: #dbeafe; color: #1e40af; }
+.status-badge.status-inspected { background: #fce7f3; color: #831843; }
+.status-badge.status-accepted { background: #dcfce7; color: #166534; }
+.status-badge.status-rejected { background: #fee2e2; color: #991b1b; }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.inline-form { display: inline; }
+.grn-content { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+.grn-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+.section { padding: 24px; border-bottom: 1px solid #e5e7eb; }
+.section:last-child { border-bottom: none; }
+.section h3 { font-size: 16px; font-weight: 700; color: #111111; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #f3f4f6; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.info-item { display: flex; flex-direction: column; }
+.info-item label { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.info-item p { font-size: 14px; color: #111111; margin: 0; }
+.info-item a { color: #0f62fe; text-decoration: none; }
+.info-item a:hover { text-decoration: underline; }
+.items-table-container { overflow-x: auto; }
+.items-table { width: 100%; border-collapse: collapse; margin: 0; }
+.items-table thead { background: #f9fafb; }
+.items-table th { padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; }
+.items-table th.text-right { text-align: right; }
+.items-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+.items-table tbody tr:hover { background: #f9fafb; }
+.text-right { text-align: right; }
+.highlighted { font-weight: 600; color: #0f62fe; }
+.condition { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; display: inline-block; }
+.condition-good { background: #dcfce7; color: #166534; }
+.condition-damaged { background: #fee2e2; color: #991b1b; }
+.condition-partial { background: #fce7f3; color: #831843; }
+.empty-state { text-align: center; color: #6b7280; padding: 24px; background: #f9fafb; border-radius: 6px; margin: 0; }
+.text-content { font-size: 14px; color: #374151; line-height: 1.6; }
+.sidebar { display: flex; flex-direction: column; gap: 16px; }
+.sidebar-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 16px; }
+.sidebar-card h4 { font-size: 14px; font-weight: 700; color: #111111; margin: 0 0 12px 0; }
+.timeline-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
+.timeline-item:last-child { border-bottom: none; }
+.timeline-item .label { color: #6b7280; font-weight: 600; }
+.timeline-item .value { color: #111111; }
+.stat-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+.stat-item:last-child { border-bottom: none; }
+.stat-item .label { color: #6b7280; font-weight: 600; }
+.stat-item .value { color: #111111; font-weight: 600; }
+.stat-item.rejected .value { color: #dc2626; }
+.actions-card { background: #f0f9ff; border-color: #bfdbfe; }
+.action-list { display: flex; flex-direction: column; gap: 8px; }
+.btn { padding: 10px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.2s; text-align: center; }
+.btn-primary { background: #0f62fe; color: white; }
+.btn-primary:hover { background: #0353e9; }
+.btn-secondary { background: #f3f4f6; color: #111111; }
+.btn-secondary:hover { background: #e5e7eb; }
+.btn-info { background: #3b82f6; color: white; }
+.btn-info:hover { background: #2563eb; }
+.btn-success { background: #10b981; color: white; }
+.btn-success:hover { background: #059669; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-block { width: 100%; }
+@media (max-width: 768px) {
+  .grn-content { grid-template-columns: 1fr; }
+  .detail-header { flex-direction: column; gap: 16px; }
+  .header-actions { justify-content: flex-start; }
+  .info-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}

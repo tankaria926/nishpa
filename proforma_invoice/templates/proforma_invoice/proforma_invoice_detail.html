@@ -1,0 +1,737 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}Proforma Invoice - {{ proforma.invoice_number }}{% endblock %}
+
+{% block content %}
+<section class="proforma-detail-page">
+  <!-- Header with Actions -->
+  <div class="detail-header">
+    <div class="header-content">
+      <div class="breadcrumb">
+        <a href="{% url 'proforma_invoice:proforma_invoice_list' %}">Proforma Invoices</a>
+        <span>/</span>
+        <span>{{ proforma.invoice_number }}</span>
+      </div>
+      <div class="header-title">
+        <h1>{{ proforma.invoice_number }}</h1>
+        <span class="status-badge status-{{ proforma.status|lower }}">{{ proforma.get_status_display }}</span>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      {% if proforma.status == 'draft' %}
+      <a href="{% url 'proforma_invoice:proforma_invoice_edit' proforma.id %}" class="btn btn-primary">Edit</a>
+      <form action="{% url 'proforma_invoice:proforma_invoice_issue' proforma.id %}" method="post" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">Issue Invoice</button>
+      </form>
+      {% endif %}
+      {% if proforma.status == 'issued' %}
+        {% if not proforma.purchase_order %}
+        <a href="{% url 'purchase_order:purchase_order_create_from_proforma' proforma.id %}" class="btn btn-info">📦 Create Purchase Order</a>
+        {% else %}
+        <a href="{% url 'purchase_order:purchase_order_detail' proforma.purchase_order.id %}" class="btn btn-info">View Purchase Order</a>
+        {% endif %}
+      {% endif %}
+      <a href="{% url 'proforma_invoice:proforma_invoice_pdf' proforma.id %}" class="btn btn-secondary" target="_blank">Download PDF</a>
+      {% if proforma.status == 'draft' %}
+      <form action="{% url 'proforma_invoice:proforma_invoice_delete' proforma.id %}" method="post" class="inline-form" onsubmit="return confirm('Delete this proforma invoice?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Status Message -->
+  {% if proforma.status == 'draft' %}
+  <div class="status-message info">
+    <strong>ℹ️ Draft Invoice</strong>
+    <p>This invoice is still in draft status. Issue it to proceed with purchase order creation.</p>
+  </div>
+  {% elif proforma.status == 'issued' and not proforma.purchase_order %}
+  <div class="status-message success">
+    <strong>✅ Ready for Purchase Order</strong>
+    <p>This invoice has been issued. You can now create a purchase order from the items above.</p>
+  </div>
+  {% elif proforma.status == 'issued' and proforma.purchase_order %}
+  <div class="status-message info">
+    <strong>ℹ️ Purchase Order Created</strong>
+    <p>A purchase order has already been created from this invoice.</p>
+  </div>
+  {% endif %}
+
+  <!-- Main Content -->
+  <div class="proforma-content">
+    <!-- Proforma Card -->
+    <div class="proforma-card">
+      <!-- Customer Section -->
+      <div class="section customer-section">
+        <h3>Customer</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Name</label>
+            <p>{{ proforma.customer_name }}</p>
+          </div>
+          <div class="info-item">
+            <label>Email</label>
+            <p><a href="mailto:{{ proforma.customer_email }}">{{ proforma.customer_email }}</a></p>
+          </div>
+          <div class="info-item">
+            <label>Phone</label>
+            <p>{{ proforma.customer_phone|default:"—" }}</p>
+          </div>
+          <div class="info-item">
+            <label>Company</label>
+            <p>{{ proforma.customer_company|default:"—" }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Details Section -->
+      <div class="section details-section">
+        <h3>Invoice Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Invoice Number</label>
+            <p>{{ proforma.invoice_number }}</p>
+          </div>
+          <div class="info-item">
+            <label>Date</label>
+            <p>{{ proforma.created_at|date:"M d, Y" }}</p>
+          </div>
+          <div class="info-item">
+            <label>Valid Until</label>
+            <p>{% if proforma.valid_until %}{{ proforma.valid_until|date:"M d, Y" }}{% else %}—{% endif %}</p>
+          </div>
+          <div class="info-item">
+            <label>Status</label>
+            <p><span class="status-badge status-{{ proforma.status|lower }}">{{ proforma.get_status_display }}</span></p>
+          </div>
+        </div>
+      </div>
+
+      {% if proforma.subject or proforma.description %}
+      <div class="section description-section">
+        {% if proforma.subject %}
+        <h3>{{ proforma.subject }}</h3>
+        {% endif %}
+        {% if proforma.description %}
+        <div class="description-text">
+          {{ proforma.description|linebreaks }}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Line Items -->
+      <div class="section items-section">
+        <h3>Line Items</h3>
+        {% if proforma_items %}
+        <div class="items-table-container">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th class="text-right">Quantity</th>
+                <th class="text-right">Unit Price</th>
+                <th class="text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in proforma_items %}
+              <tr>
+                <td>
+                  <div class="item-description">{{ item.description }}</div>
+                </td>
+                <td class="text-right">{{ item.quantity }}</td>
+                <td class="text-right">${{ item.unit_price|floatformat:2 }}</td>
+                <td class="text-right item-total">${{ item.get_total|floatformat:2 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="empty-state">No items in this proforma invoice</p>
+        {% endif %}
+      </div>
+
+      <!-- Pricing Summary -->
+      <div class="section summary-section">
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">Subtotal</span>
+            <span class="summary-value">${{ proforma.get_subtotal|floatformat:2 }}</span>
+          </div>
+          {% if proforma.tax_rate > 0 %}
+          <div class="summary-item">
+            <span class="summary-label">Tax ({{ proforma.tax_rate }}%)</span>
+            <span class="summary-value">${{ proforma.get_tax_amount|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+          <div class="summary-item total">
+            <span class="summary-label">Total</span>
+            <span class="summary-value">${{ proforma.get_total|floatformat:2 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes & Terms -->
+      {% if proforma.notes or proforma.terms %}
+      <div class="section notes-section">
+        {% if proforma.notes %}
+        <div class="notes-content">
+          <h4>Notes</h4>
+          <div class="text-content">{{ proforma.notes|linebreaks }}</div>
+        </div>
+        {% endif %}
+        {% if proforma.terms %}
+        <div class="terms-content">
+          <h4>Terms & Conditions</h4>
+          <div class="text-content">{{ proforma.terms|linebreaks }}</div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- Timestamps -->
+      <div class="sidebar-card">
+        <h4>Timeline</h4>
+        <div class="timeline-item">
+          <span class="label">Created</span>
+          <span class="value">{{ proforma.created_at|date:"M d, Y H:i" }}</span>
+        </div>
+        {% if proforma.updated_at != proforma.created_at %}
+        <div class="timeline-item">
+          <span class="label">Updated</span>
+          <span class="value">{{ proforma.updated_at|date:"M d, Y H:i" }}</span>
+        </div>
+        {% endif %}
+        {% if proforma.issued_at %}
+        <div class="timeline-item">
+          <span class="label">Issued</span>
+          <span class="value">{{ proforma.issued_at|date:"M d, Y H:i" }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Related Quotation -->
+      {% if proforma.quotation %}
+      <div class="sidebar-card">
+        <h4>Related Quotation</h4>
+        <a href="{% url 'quotation:quotation_detail' proforma.quotation.id %}" class="related-link">
+          <span>{{ proforma.quotation.quotation_number }}</span>
+          <span class="arrow">→</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Quick Stats -->
+      <div class="sidebar-card">
+        <h4>Details</h4>
+        <div class="stat-item">
+          <span class="label">Items Count</span>
+          <span class="value">{{ proforma_items.count }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Total Amount</span>
+          <span class="value price">${{ proforma.get_total|floatformat:2 }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Tax Rate</span>
+          <span class="value">{{ proforma.tax_rate }}%</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      {% if proforma.status in 'draft,issued' %}
+      <div class="sidebar-card actions-card">
+        <h4>Actions</h4>
+        <botton-list>
+          {% if proforma.status == 'draft' %}
+          <a href="{% url 'proforma_invoice:proforma_invoice_edit' proforma.id %}" class="btn btn-block btn-secondary">Edit</a>
+          <form action="{% url 'proforma_invoice:proforma_invoice_issue' proforma.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-block btn-success">Issue Invoice</button>
+          </form>
+          {% endif %}
+          <a href="{% url 'proforma_invoice:proforma_invoice_pdf' proforma.id %}" class="btn btn-block btn-secondary" target="_blank">Download PDF</a>
+        </botton-list>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+
+<style>
+.status-message {
+  margin: 24px 0;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+.status-message strong { display: block; font-size: 14px; margin-bottom: 4px; }
+.status-message p { margin: 0; font-size: 14px; }
+.status-message.info { background: #dbeafe; border-color: #0f62fe; color: #1e40af; }
+.status-message.success { background: #dcfce7; border-color: #10b981; color: #166534; }
+.status-message.warning { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+.status-message.error { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+
+.proforma-detail-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.header-content {
+  flex: 1;
+}
+
+.breadcrumb {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.breadcrumb a {
+  color: #0f62fe;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-title h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  color: #111111;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.status-draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.status-issued {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.status-converted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.inline-form {
+  display: inline;
+}
+
+.proforma-content {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+}
+
+.proforma-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.section {
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.section h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111111;
+  margin: 0 0 12px 0;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-item label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.info-item p {
+  font-size: 14px;
+  color: #111111;
+  margin: 0;
+}
+
+.info-item a {
+  color: #0f62fe;
+  text-decoration: none;
+}
+
+.info-item a:hover {
+  text-decoration: underline;
+}
+
+.description-text {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.items-table-container {
+  overflow-x: auto;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.items-table thead {
+  background: #f9fafb;
+}
+
+.items-table th {
+  padding: 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.items-table th.text-right {
+  text-align: right;
+}
+
+.items-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.items-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.item-description {
+  font-weight: 600;
+  color: #111111;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.item-total {
+  font-weight: 600;
+  color: #111111;
+}
+
+.empty-state {
+  text-align: center;
+  color: #6b7280;
+  padding: 24px;
+  background: #f9fafb;
+  border-radius: 6px;
+  margin: 0;
+}
+
+.summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.summary-item.total {
+  border: none;
+  border-top: 2px solid #0f62fe;
+  padding: 16px 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.summary-label {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.summary-value {
+  color: #111111;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.summary-item.total .summary-value {
+  color: #0f62fe;
+  font-size: 20px;
+}
+
+.notes-content,
+.terms-content {
+  margin-bottom: 16px;
+}
+
+.notes-content:last-child,
+.terms-content:last-child {
+  margin-bottom: 0;
+}
+
+.text-content {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+}
+
+.sidebar-card h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0 0 12px 0;
+}
+
+.timeline-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+}
+
+.timeline-item:last-child {
+  border-bottom: none;
+}
+
+.timeline-item .label {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.timeline-item .value {
+  color: #111111;
+}
+
+.related-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #0f62fe;
+  transition: all 0.2s;
+}
+
+.related-link:hover {
+  background: #e5e7eb;
+  text-decoration: underline;
+}
+
+.related-link .arrow {
+  margin-left: 12px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-item .label {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.stat-item .value {
+  color: #111111;
+  font-weight: 600;
+}
+
+.stat-item .value.price {
+  color: #10b981;
+  font-size: 16px;
+}
+
+.actions-card {
+  background: #f0f9ff;
+  border-color: #bfdbfe;
+}
+
+.botton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.btn-primary {
+  background: #0f62fe;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0353e9;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #111111;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .proforma-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-header {
+    flex-direction: column;
+  }
+  
+  .header-actions {
+    justify-content: flex-start;
+    margin-top: 16px;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}

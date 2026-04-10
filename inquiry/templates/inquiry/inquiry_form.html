@@ -1,0 +1,79 @@
+{% extends 'inquiry/base.html' %}
+{% block title %}Inquiry Form{% endblock %}
+
+{% block content %}
+<section class="form-wrapper">
+  <form method="post" class="inquiry-form">
+    {% csrf_token %}
+
+    <!-- Top: Contact Information -->
+    <div class="form-section contact-section">
+      <div class="section-header">
+        <h2>Your Information</h2>
+        <p>Tell us how to reach you</p>
+      </div>
+      
+      <div class="form-group">
+        {{ form.full_name.label_tag }}
+        {{ form.full_name }}
+        {% if form.full_name.errors %}<span class="error">{{ form.full_name.errors.0 }}</span>{% endif %}
+      </div>
+      
+      <div class="form-group">
+        {{ form.email.label_tag }}
+        {{ form.email }}
+        {% if form.email.errors %}<span class="error">{{ form.email.errors.0 }}</span>{% endif %}
+      </div>
+      
+      <div class="form-group">
+        {{ form.phone.label_tag }}
+        {{ form.phone }}
+      </div>
+      
+      <div class="form-group full-width">
+        {{ form.message.label_tag }}
+        {{ form.message }}
+      </div>
+    </div>
+
+    <!-- Bottom: Product Selection -->
+    <div class="shopping-cart-section">
+      <!-- Products Panel -->
+      <div class="products-panel">
+        <div class="panel-header">
+          <h3>Shop Products</h3>
+          <p>Select items to inquire about</p>
+        </div>
+        
+        <div class="category-selector">
+          <label for="category-select">Category</label>
+          <select id="category-select">
+            <option value="">-- Choose category --</option>
+            {% for c in categories %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div id="products-list" class="products-grid">
+          <p class="empty-state">Select a category to view products</p>
+        </div>
+      </div>
+
+      <!-- Cart Panel -->
+      <div class="cart-panel-fixed">
+        <div class="cart-header">
+          <h4>Your Cart</h4>
+          <span id="cart-count" class="cart-badge">0</span>
+        </div>
+        <div id="cart-items" class="cart-items-list">
+          <p class="empty-state">No items selected yet.</p>
+        </div>
+        <div class="cart-footer">
+          <button class="btn btn-primary btn-block" type="submit">Submit Inquiry</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,376 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}Create Purchase Order{% endblock %}
+
+{% block content %}
+<section class="po-create-page">
+  <div class="create-header">
+    <h1>Create Purchase Order</h1>
+    {% if proforma %}<p class="subtitle">From Proforma Invoice {{ proforma.invoice_number }}</p>{% endif %}
+  </div>
+
+  <div class="create-content">
+    <form method="post" class="create-form">
+      {% csrf_token %}
+      
+      <div class="form-section">
+        <h3>Vendor Selection</h3>
+        
+        <div class="form-group">
+          <label for="vendor_id">Select Vendor</label>
+          <select id="vendor_id" name="vendor_id" class="form-control" required>
+            <option value="">-- Select a Vendor --</option>
+            {% for vendor in vendors %}
+            <option value="{{ vendor.id }}">{{ vendor.name }} ({{ vendor.email }})</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Purchase Order Details</h3>
+        
+        <div class="form-group">
+          <label for="subject">Subject</label>
+          <input type="text" id="subject" name="subject" value="Purchase Order" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="required_by">Required By</label>
+            <input type="date" id="required_by" name="required_by" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="tax_rate">Tax Rate (%)</label>
+            <input type="number" id="tax_rate" name="tax_rate" value="0" step="0.01" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="discount">Discount</label>
+            <input type="number" id="discount" name="discount" value="0" step="0.01" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="discount_type">Discount Type</label>
+            <select id="discount_type" name="discount_type" class="form-control">
+              <option value="fixed">Fixed</option>
+              <option value="percent">Percentage</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="shipping_cost">Shipping Cost</label>
+            <input type="number" id="shipping_cost" name="shipping_cost" value="0" step="0.01" class="form-control">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Line Items</h3>
+        {% if proforma_items %}
+        <div class="items-list">
+          {% for item in proforma_items %}
+          <div class="item-row">
+            <div class="item-detail">
+              <div class="item-description">{{ item.description }}</div>
+              <div class="item-meta">Qty: {{ item.quantity }} × ${{ item.unit_price|floatformat:2 }} = ${{ item.total|floatformat:2 }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div id="items-container">
+          <!-- Dynamic items will be added here -->
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="addItemRow();">+ Add Item</button>
+        {% endif %}
+      </div>
+
+      <div class="form-section">
+        <h3>Notes & Terms</h3>
+        
+        <div class="form-group">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="terms">Terms & Conditions</label>
+          <textarea id="terms" name="terms" class="form-control" rows="3"></textarea>
+        </div>
+      </div>
+
+      <input type="hidden" name="items_json" id="items_json">
+
+      <div class="form-actions">
+        <a href="{% url 'purchase_order:purchase_order_list' %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create Purchase Order</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<script>
+function addItemRow() {
+  const container = document.getElementById('items-container');
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = `
+    <div class="item-inputs">
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" class="item-description form-control" value="">
+      </div>
+      <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" class="item-quantity form-control" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Unit Price</label>
+        <input type="number" class="item-price form-control" value="0" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>Total</label>
+        <input type="text" class="item-total form-control" value="$0.00" readonly>
+      </div>
+    </div>
+    <button type="button" class="btn btn-remove" onclick="this.parentElement.remove();">Remove</button>
+  `;
+  container.appendChild(row);
+  attachItemListeners(row);
+}
+
+function attachItemListeners(row) {
+  row.querySelectorAll('.item-quantity, .item-price').forEach(input => {
+    input.addEventListener('change', updateItemTotal);
+  });
+}
+
+function updateItemTotal(e) {
+  const row = e.target.closest('.item-row');
+  const qty = parseFloat(row.querySelector('.item-quantity').value) || 0;
+  const price = parseFloat(row.querySelector('.item-price').value) || 0;
+  const total = (qty * price).toFixed(2);
+  row.querySelector('.item-total').value = '$' + total;
+}
+
+document.querySelectorAll('.item-row').forEach(attachItemListeners);
+
+document.querySelector('form').addEventListener('submit', function(e) {
+  const container = document.getElementById('items-container');
+  if (container && container.children.length > 0) {
+    const items = [];
+    document.querySelectorAll('.item-row').forEach(row => {
+      items.push({
+        description: row.querySelector('.item-description').value,
+        quantity: parseInt(row.querySelector('.item-quantity').value) || 0,
+        unit_price: parseFloat(row.querySelector('.item-price').value) || 0,
+      });
+    });
+    document.getElementById('items_json').value = JSON.stringify({ items });
+  }
+});
+</script>
+
+<style>
+.po-create-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.create-header {
+  margin-bottom: 32px;
+}
+
+.create-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0 0 8px 0;
+}
+
+.create-header .subtitle {
+  color: #6b7280;
+  margin: 0;
+}
+
+.create-form {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.form-section {
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+}
+
+.form-section h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0 0 20px 0;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111111;
+  margin-bottom: 8px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #0f62fe;
+  box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.1);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.items-list {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.item-row {
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.item-row:last-child {
+  margin-bottom: 0;
+}
+
+.item-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-description {
+  font-weight: 600;
+  color: #111111;
+  margin-bottom: 4px;
+}
+
+.item-meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.item-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.item-row .form-group {
+  margin-bottom: 0;
+}
+
+.btn-remove {
+  padding: 8px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  height: fit-content;
+}
+
+.btn-remove:hover {
+  background: #dc2626;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  padding: 24px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 10px 24px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #0f62fe;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0353e9;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #111111;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .item-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}

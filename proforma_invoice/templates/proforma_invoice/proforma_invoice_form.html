@@ -1,0 +1,370 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}{% if editing %}Edit{% else %}Create{% endif %} Proforma Invoice{% endblock %}
+
+{% block content %}
+<section class="proforma-form-page">
+  <div class="form-header">
+    <h1>{% if editing %}Edit{% else %}Create{% endif %} Proforma Invoice</h1>
+  </div>
+
+  <div class="form-content">
+    <form method="post" class="proforma-form">
+      {% csrf_token %}
+      
+      <div class="form-section">
+        <h3>Invoice Details</h3>
+        
+        <div class="form-group">
+          <label for="subject">Invoice Subject</label>
+          <input type="text" id="subject" name="subject" value="{{ proforma.subject }}" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" class="form-control" rows="4">{{ proforma.description }}</textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="customer_name">Customer Name</label>
+            <input type="text" id="customer_name" name="customer_name" value="{{ proforma.customer_name }}" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="customer_email">Customer Email</label>
+            <input type="email" id="customer_email" name="customer_email" value="{{ proforma.customer_email }}" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="customer_phone">Customer Phone</label>
+            <input type="text" id="customer_phone" name="customer_phone" value="{{ proforma.customer_phone }}" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="customer_company">Customer Company</label>
+            <input type="text" id="customer_company" name="customer_company" value="{{ proforma.customer_company }}" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="valid_until">Valid Until</label>
+            <input type="date" id="valid_until" name="valid_until" 
+                   value="{% if proforma.valid_until %}{{ proforma.valid_until|date:'Y-m-d' }}{% endif %}" 
+                   class="form-control">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Pricing</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tax_rate">Tax Rate (%)</label>
+            <input type="number" id="tax_rate" name="tax_rate" value="{{ proforma.tax_rate }}" step="0.01" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="discount">Discount</label>
+            <input type="number" id="discount" name="discount" value="{{ proforma.discount }}" step="0.01" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="discount_type">Discount Type</label>
+            <select id="discount_type" name="discount_type" class="form-control">
+              <option value="fixed" {% if proforma.discount_type == 'fixed' %}selected{% endif %}>Fixed</option>
+              <option value="percent" {% if proforma.discount_type == 'percent' %}selected{% endif %}>Percentage</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Line Items</h3>
+        
+        <div id="items-container">
+          {% for item in items %}
+          <div class="item-row" data-item-id="{{ item.id }}">
+            <div class="item-inputs">
+              <div class="form-group">
+                <label>Description</label>
+                <input type="text" class="item-description form-control" value="{{ item.description }}">
+              </div>
+              <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" class="item-quantity form-control" value="{{ item.quantity }}" min="1">
+              </div>
+              <div class="form-group">
+                <label>Unit Price</label>
+                <input type="number" class="item-price form-control" value="{{ item.unit_price }}" step="0.01" min="0">
+              </div>
+              <div class="form-group">
+                <label>Total</label>
+                <input type="text" class="item-total form-control" value="${{ item.total|floatformat:2 }}" readonly>
+              </div>
+            </div>
+            <button type="button" class="btn btn-remove" onclick="this.parentElement.remove();">Remove</button>
+          </div>
+          {% endfor %}
+        </div>
+
+        <button type="button" class="btn btn-secondary" onclick="addItemRow();">+ Add Item</button>
+      </div>
+
+      <div class="form-section">
+        <h3>Notes & Terms</h3>
+        
+        <div class="form-group">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes" class="form-control" rows="3">{{ proforma.notes }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="terms">Terms & Conditions</label>
+          <textarea id="terms" name="terms" class="form-control" rows="3">{{ proforma.terms }}</textarea>
+        </div>
+      </div>
+
+      <input type="hidden" name="items_json" id="items_json">
+
+      <div class="form-actions">
+        <a href="{% url 'proforma_invoice:proforma_invoice_detail' proforma.id %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<script>
+function addItemRow() {
+  const container = document.getElementById('items-container');
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = `
+    <div class="item-inputs">
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" class="item-description form-control" value="">
+      </div>
+      <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" class="item-quantity form-control" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Unit Price</label>
+        <input type="number" class="item-price form-control" value="0" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>Total</label>
+        <input type="text" class="item-total form-control" value="$0.00" readonly>
+      </div>
+    </div>
+    <button type="button" class="btn btn-remove" onclick="this.parentElement.remove();">Remove</button>
+  `;
+  container.appendChild(row);
+}
+
+document.querySelectorAll('.item-quantity, .item-price').forEach(input => {
+  input.addEventListener('change', updateItemTotal);
+});
+
+function updateItemTotal(e) {
+  const row = e.target.closest('.item-row');
+  const qty = parseFloat(row.querySelector('.item-quantity').value) || 0;
+  const price = parseFloat(row.querySelector('.item-price').value) || 0;
+  const total = (qty * price).toFixed(2);
+  row.querySelector('.item-total').value = '$' + total;
+}
+
+document.querySelector('.proforma-form').addEventListener('submit', function(e) {
+  const items = [];
+  document.querySelectorAll('.item-row').forEach(row => {
+    items.push({
+      description: row.querySelector('.item-description').value,
+      quantity: parseInt(row.querySelector('.item-quantity').value) || 0,
+      unit_price: parseFloat(row.querySelector('.item-price').value) || 0,
+    });
+  });
+  document.getElementById('items_json').value = JSON.stringify({ items });
+});
+</script>
+
+<style>
+.proforma-form-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.form-header {
+  margin-bottom: 32px;
+}
+
+.form-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0;
+}
+
+.proforma-form {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.form-section {
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+}
+
+.form-section h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0 0 20px 0;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111111;
+  margin-bottom: 8px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #0f62fe;
+  box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.1);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+#items-container {
+  margin-bottom: 16px;
+}
+
+.item-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 12px;
+  align-items: start;
+}
+
+.item-row:last-child {
+  margin-bottom: 0;
+}
+
+.item-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.item-row .form-group {
+  margin-bottom: 0;
+}
+
+.btn-remove {
+  padding: 8px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  height: fit-content;
+}
+
+.btn-remove:hover {
+  background: #dc2626;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  padding: 24px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 10px 24px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #0f62fe;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0353e9;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #111111;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .item-row {
+    grid-template-columns: 1fr;
+  }
+
+  .item-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}{{ vendor.name }}{% endblock %}
+
+{% block content %}
+<section class="vendor-detail-page">
+  <div class="detail-header">
+    <div class="header-content">
+      <div class="breadcrumb">
+        <a href="{% url 'purchase_order:vendor_list' %}">Vendors</a>
+        <span>/</span>
+        <span>{{ vendor.name }}</span>
+      </div>
+      <h1>{{ vendor.name }}</h1>
+    </div>
+    
+    <div class="header-actions">
+      <a href="{% url 'purchase_order:vendor_edit' vendor.id %}" class="btn btn-primary">Edit</a>
+      <form action="{% url 'purchase_order:vendor_delete' vendor.id %}" method="post" class="inline-form" onsubmit="return confirm('Delete this vendor?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="vendor-content">
+    <div class="vendor-card">
+      <div class="section contact-section">
+        <h3>Contact Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Email</label>
+            <p><a href="mailto:{{ vendor.email }}">{{ vendor.email }}</a></p>
+          </div>
+          {% if vendor.phone %}
+          <div class="info-item">
+            <label>Phone</label>
+            <p><a href="tel:{{ vendor.phone }}">{{ vendor.phone }}</a></p>
+          </div>
+          {% endif %}
+          {% if vendor.address %}
+          <div class="info-item">
+            <label>Address</label>
+            <p>{{ vendor.address }}</p>
+          </div>
+          {% endif %}
+          {% if vendor.tax_id %}
+          <div class="info-item">
+            <label>Tax ID</label>
+            <p>{{ vendor.tax_id }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if vendor.bank_name or vendor.account_number or vendor.ifsc_code %}
+      <div class="section banking-section">
+        <h3>Banking Information</h3>
+        <div class="info-grid">
+          {% if vendor.bank_name %}
+          <div class="info-item">
+            <label>Bank Name</label>
+            <p>{{ vendor.bank_name }}</p>
+          </div>
+          {% endif %}
+          {% if vendor.account_number %}
+          <div class="info-item">
+            <label>Account Number</label>
+            <p>{{ vendor.account_number }}</p>
+          </div>
+          {% endif %}
+          {% if vendor.ifsc_code %}
+          <div class="info-item">
+            <label>IFSC Code</label>
+            <p>{{ vendor.ifsc_code }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="section purchase-orders-section">
+        <h3>Purchase Orders</h3>
+        {% if purchase_orders %}
+        <div class="pos-table-container">
+          <table class="pos-table">
+            <thead>
+              <tr>
+                <th>PO Number</th>
+                <th>Status</th>
+                <th>Total Amount</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for po in purchase_orders %}
+              <tr>
+                <td><a href="{% url 'purchase_order:purchase_order_detail' po.id %}" class="po-link">{{ po.po_number }}</a></td>
+                <td><span class="status-badge status-{{ po.status|lower }}">{{ po.get_status_display }}</span></td>
+                <td class="amount">${{ po.get_total|floatformat:2 }}</td>
+                <td class="date">{{ po.created_at|date:"M d, Y" }}</td>
+                <td class="action"><a href="{% url 'purchase_order:purchase_order_detail' po.id %}" class="btn-view">View</a></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <p>No purchase orders from this vendor yet.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="sidebar-card">
+        <h4>Vendor Stats</h4>
+        <div class="stat-item">
+          <span class="label">Total POs</span>
+          <span class="value">{{ purchase_orders.count }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Created</span>
+          <span class="value">{{ vendor.created_at|date:"M d, Y" }}</span>
+        </div>
+      </div>
+
+      <div class="sidebar-card actions-card">
+        <h4>Actions</h4>
+        <div class="action-list">
+          <a href="{% url 'purchase_order:vendor_edit' vendor.id %}" class="btn btn-block btn-secondary">Edit Vendor</a>
+          <a href="{% url 'purchase_order:vendor_list' %}" class="btn btn-block btn-secondary">Back to List</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<style>
+.vendor-detail-page { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb; }
+.header-content { flex: 1; }
+.breadcrumb { font-size: 12px; color: #6b7280; margin-bottom: 12px; }
+.breadcrumb a { color: #0f62fe; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.header-content h1 { font-size: 32px; font-weight: 700; margin: 0; color: #111111; }
+.header-actions { display: flex; gap: 12px; }
+.inline-form { display: inline; }
+.vendor-content { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+.vendor-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; }
+.section { padding: 24px; border-bottom: 1px solid #e5e7eb; }
+.section:last-child { border-bottom: none; }
+.section h3 { font-size: 16px; font-weight: 700; color: #111111; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #f3f4f6; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.info-item { display: flex; flex-direction: column; }
+.info-item label { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.info-item p { font-size: 14px; color: #111111; margin: 0; }
+.info-item a { color: #0f62fe; text-decoration: none; }
+.info-item a:hover { text-decoration: underline; }
+.pos-table-container { overflow-x: auto; }
+.pos-table { width: 100%; border-collapse: collapse; }
+.pos-table thead { background: #f9fafb; }
+.pos-table th { padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; }
+.pos-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+.pos-table tbody tr:hover { background: #f9fafb; }
+.po-link { color: #0f62fe; text-decoration: none; font-weight: 600; }
+.po-link:hover { text-decoration: underline; }
+.status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+.status-badge.status-draft { background: #fef3c7; color: #92400e; }
+.status-badge.status-sent { background: #dbeafe; color: #1e40af; }
+.status-badge.status-confirmed { background: #dcfce7; color: #166534; }
+.status-badge.status-cancelled { background: #fee2e2; color: #991b1b; }
+.amount { font-weight: 600; color: #111111; }
+.date { color: #6b7280; }
+.action { text-align: center; }
+.btn-view { padding: 6px 12px; background: #0f62fe; color: white; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block; }
+.btn-view:hover { background: #0353e9; }
+.empty-state { text-align: center; padding: 24px; background: #f9fafb; border-radius: 6px; color: #6b7280; }
+.sidebar { display: flex; flex-direction: column; gap: 16px; }
+.sidebar-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 16px; }
+.sidebar-card h4 { font-size: 14px; font-weight: 700; color: #111111; margin: 0 0 12px 0; }
+.stat-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+.stat-item:last-child { border-bottom: none; }
+.stat-item .label { color: #6b7280; font-weight: 600; }
+.stat-item .value { color: #111111; font-weight: 600; }
+.actions-card { background: #f0f9ff; border-color: #bfdbfe; }
+.action-list { display: flex; flex-direction: column; gap: 8px; }
+.btn { padding: 10px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.2s; text-align: center; }
+.btn-primary { background: #0f62fe; color: white; }
+.btn-primary:hover { background: #0353e9; }
+.btn-secondary { background: #f3f4f6; color: #111111; }
+.btn-secondary:hover { background: #e5e7eb; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-block { width: 100%; }
+@media (max-width: 768px) {
+  .vendor-content { grid-template-columns: 1fr; }
+  .detail-header { flex-direction: column; gap: 16px; }
+  .header-actions { justify-content: flex-start; }
+}
+</style>
+{% endblock %}

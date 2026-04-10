@@ -1,0 +1,528 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}{% if editing %}Edit{% else %}Create{% endif %} Quotation{% endblock %}
+
+{% block content %}
+<section class="quotation-form-page">
+  <div class="form-header">
+    <h1>{% if editing %}Edit Quotation{% else %}Create New Quotation{% endif %}</h1>
+  </div>
+
+  <form id="quotation-form" method="post" class="quotation-form">
+    {% csrf_token %}
+    <input type="hidden" id="items-json" name="items_json" value="{}">
+
+    <!-- Customer Information -->
+    <div class="form-section">
+      <h2>Customer Information</h2>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="customer_name" class="form-label">Customer Name *</label>
+          {% if editing %}
+            <input type="text" id="customer_name" name="customer_name" value="{{ quotation.customer_name }}" required class="form-input">
+          {% else %}
+            <input type="text" id="customer_name" name="customer_name" value="{{ inquiry.full_name }}" required class="form-input">
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="customer_email" class="form-label">Email *</label>
+          {% if editing %}
+            <input type="email" id="customer_email" name="customer_email" value="{{ quotation.customer_email }}" required class="form-input">
+          {% else %}
+            <input type="email" id="customer_email" name="customer_email" value="{{ inquiry.email }}" required class="form-input">
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="customer_phone" class="form-label">Phone</label>
+          {% if editing %}
+            <input type="tel" id="customer_phone" name="customer_phone" value="{{ quotation.customer_phone }}" class="form-input">
+          {% else %}
+            <input type="tel" id="customer_phone" name="customer_phone" value="{{ inquiry.phone }}" class="form-input">
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="customer_company" class="form-label">Company</label>
+          {% if editing %}
+            <input type="text" id="customer_company" name="customer_company" value="{{ quotation.customer_company }}" class="form-input">
+          {% else %}
+            <input type="text" id="customer_company" name="customer_company" class="form-input">
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Quotation Details -->
+    <div class="form-section">
+      <h2>Quotation Details</h2>
+      
+      <div class="form-group full-width">
+        <label for="subject" class="form-label">Subject</label>
+        {% if editing %}
+          <input type="text" id="subject" name="subject" value="{{ quotation.subject }}" class="form-input">
+        {% else %}
+          <input type="text" id="subject" name="subject" value="Quotation for Products" class="form-input">
+        {% endif %}
+      </div>
+
+      <div class="form-group full-width">
+        <label for="description" class="form-label">Description</label>
+        {% if editing %}
+          <textarea id="description" name="description" rows="4" class="form-input">{{ quotation.description }}</textarea>
+        {% else %}
+          <textarea id="description" name="description" rows="4" class="form-input"></textarea>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="form-section">
+      <div class="section-header">
+        <h2>Line Items</h2>
+        <button type="button" id="add-item-btn" class="btn btn-secondary">+ Add Item</button>
+      </div>
+
+      <div id="items-container" class="items-container">
+        {% if editing %}
+          {% for item in items %}
+          <div class="item-row" data-item-id="{{ item.id }}">
+            <input type="hidden" class="item-id" value="{{ item.id }}">
+            <input type="hidden" class="product-id" value="{% if item.product %}{{ item.product.id }}{% endif %}">
+            <input type="text" class="item-description" placeholder="Description" value="{{ item.description }}" data-product-name="{% if item.product %}{{ item.product.name }}{% endif %}">
+            <input type="number" class="item-quantity" placeholder="Qty" min="1" value="{{ item.quantity }}">
+            <input type="number" class="item-price" placeholder="Unit Price" min="0" step="0.01" value="{{ item.unit_price }}">
+            <span class="item-total">$0.00</span>
+            <button type="button" class="btn-remove-item" title="Remove">&times;</button>
+          </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+      <div id="empty-state" class="empty-state-text" {% if editing %}style="display: none;"{% endif %}>
+        No items added yet. Click "Add Item" to get started.
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="form-section">
+      <h2>Pricing Settings</h2>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="tax_rate" class="form-label">Tax Rate (%)</label>
+          {% if editing %}
+            <input type="number" id="tax_rate" name="tax_rate" min="0" max="100" step="0.01" value="{{ quotation.tax_rate }}" class="form-input">
+          {% else %}
+            <input type="number" id="tax_rate" name="tax_rate" min="0" max="100" step="0.01" value="0" class="form-input">
+          {% endif %}
+        </div>
+        
+        <div class="form-group">
+          <label for="valid_until" class="form-label">Valid Until</label>
+          {% if editing %}
+            <input type="date" id="valid_until" name="valid_until" value="{{ quotation.valid_until|date:'Y-m-d' }}" class="form-input">
+          {% else %}
+            <input type="date" id="valid_until" name="valid_until" class="form-input">
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes & Terms -->
+    <div class="form-section">
+      <h2>Notes & Terms</h2>
+      
+      <div class="form-group full-width">
+        <label for="notes" class="form-label">Notes</label>
+        {% if editing %}
+          <textarea id="notes" name="notes" rows="3" placeholder="Additional notes for the quotation" class="form-input">{{ quotation.notes }}</textarea>
+        {% else %}
+          <textarea id="notes" name="notes" rows="3" placeholder="Additional notes for the quotation" class="form-input"></textarea>
+        {% endif %}
+      </div>
+
+      <div class="form-group full-width">
+        <label for="terms" class="form-label">Terms & Conditions</label>
+        {% if editing %}
+          <textarea id="terms" name="terms" rows="3" placeholder="Payment terms, delivery terms, etc." class="form-input">{{ quotation.terms }}</textarea>
+        {% else %}
+          <textarea id="terms" name="terms" rows="3" placeholder="Payment terms, delivery terms, etc." class="form-input"></textarea>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-box">
+      <div class="summary-row">
+        <span>Subtotal:</span>
+        <span id="subtotal">$0.00</span>
+      </div>
+      <div class="summary-row">
+        <span>Tax:</span>
+        <span id="tax-amount">$0.00</span>
+      </div>
+      <div class="summary-row total">
+        <span>Total:</span>
+        <span id="grand-total">$0.00</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <a href="{% url 'quotation:quotation_list' %}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">{% if editing %}Update Quotation{% else %}Create Quotation{% endif %}</button>
+    </div>
+  </form>
+</section>
+
+<style>
+.quotation-form-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.form-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.form-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0;
+}
+
+.quotation-form {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.form-section {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.form-section h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111111;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-input,
+input[class="form-input"],
+textarea.form-input {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #111111;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #0f62fe;
+  box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.1);
+}
+
+.items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.item-row {
+  display: grid;
+  grid-template-columns: 2fr 80px 120px 100px 36px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.item-description,
+.item-quantity,
+.item-price {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.item-description:focus,
+.item-quantity:focus,
+.item-price:focus {
+  outline: none;
+  border-color: #0f62fe;
+}
+
+.item-total {
+  font-weight: 600;
+  color: #14a44d;
+  text-align: right;
+}
+
+.btn-remove-item {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 6px;
+  font-size: 20px;
+  cursor: pointer;
+  color: #ef4444;
+  transition: all 0.2s;
+}
+
+.btn-remove-item:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.empty-state-text {
+  padding: 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+}
+
+.summary-box {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  padding: 24px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  margin: 32px 0;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.summary-row.total {
+  border-top: 2px solid #e5e7eb;
+  padding-top: 12px;
+  margin-top: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f62fe;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 24px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #0f62fe;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0d47a1;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #111111;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .item-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .item-total {
+    text-align: left;
+    margin-top: 8px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('quotation-form');
+  const itemsContainer = document.getElementById('items-container');
+  const itemsJson = document.getElementById('items-json');
+  const addItemBtn = document.getElementById('add-item-btn');
+  const taxInput = document.getElementById('tax_rate');
+  
+  // Add item button
+  addItemBtn?.addEventListener('click', function(e) {
+    e.preventDefault();
+    addItem();
+  });
+  
+  // Remove item handler
+  itemsContainer?.addEventListener('click', function(e) {
+    if (e.target.classList.contains('btn-remove-item')) {
+      e.preventDefault();
+      e.target.closest('.item-row').remove();
+      updateSummary();
+      updateEmptyState();
+    }
+  });
+  
+  // Update summary on input change
+  itemsContainer?.addEventListener('input', updateSummary);
+  taxInput?.addEventListener('input', updateSummary);
+  
+  function addItem() {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+      <input type="hidden" class="item-id">
+      <input type="hidden" class="product-id">
+      <input type="text" class="item-description" placeholder="Description">
+      <input type="number" class="item-quantity" placeholder="Qty" min="1" value="1">
+      <input type="number" class="item-price" placeholder="Unit Price" min="0" step="0.01" value="0">
+      <span class="item-total">$0.00</span>
+      <button type="button" class="btn-remove-item" title="Remove">&times;</button>
+    `;
+    itemsContainer.appendChild(row);
+    updateEmptyState();
+    updateSummary();
+  }
+  
+  function updateSummary() {
+    let subtotal = 0;
+    const rows = itemsContainer?.querySelectorAll('.item-row') || [];
+    
+    rows.forEach(row => {
+      const qty = parseFloat(row.querySelector('.item-quantity')?.value || 0);
+      const price = parseFloat(row.querySelector('.item-price')?.value || 0);
+      const total = qty * price;
+      row.querySelector('.item-total').textContent = '$' + total.toFixed(2);
+      subtotal += total;
+    });
+    
+    const taxRate = parseFloat(taxInput?.value || 0);
+    const taxAmount = (subtotal * taxRate) / 100;
+    const grandTotal = subtotal + taxAmount;
+    
+    document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+    document.getElementById('tax-amount').textContent = '$' + taxAmount.toFixed(2);
+    document.getElementById('grand-total').textContent = '$' + grandTotal.toFixed(2);
+  }
+  
+  function updateEmptyState() {
+    const emptyState = document.getElementById('empty-state');
+    const hasItems = itemsContainer?.querySelectorAll('.item-row').length > 0;
+    if (emptyState) {
+      emptyState.style.display = hasItems ? 'none' : 'block';
+    }
+  }
+  
+  // Serialize items before submit
+  form?.addEventListener('submit', function(e) {
+    const rows = itemsContainer?.querySelectorAll('.item-row') || [];
+    const items = Array.from(rows).map(row => ({
+      product_id: row.querySelector('.product-id').value,
+      description: row.querySelector('.item-description').value,
+      quantity: parseInt(row.querySelector('.item-quantity').value || 1),
+      unit_price: parseFloat(row.querySelector('.item-price').value || 0),
+    }));
+    
+    if (items.length === 0) {
+      e.preventDefault();
+      alert('Please add at least one item');
+      return;
+    }
+    
+    itemsJson.value = JSON.stringify({ items });
+  });
+  
+  // Initialize
+  updateSummary();
+  updateEmptyState();
+});
+</script>
+{% endblock %}

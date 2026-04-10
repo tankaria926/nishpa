@@ -1,0 +1,122 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}Vendors{% endblock %}
+
+{% block content %}
+<section class="vendor-list-page">
+  <div class="list-header">
+    <h1>Vendors</h1>
+    <a href="{% url 'purchase_order:vendor_create' %}" class="btn btn-primary">+ Add Vendor</a>
+  </div>
+
+  {% if vendors %}
+  <div class="vendors-grid">
+    {% for vendor in vendors %}
+    <div class="vendor-card">
+      <div class="card-header">
+        <h3><a href="{% url 'purchase_order:vendor_detail' vendor.id %}">{{ vendor.name }}</a></h3>
+        <div class="card-actions">
+          <a href="{% url 'purchase_order:vendor_edit' vendor.id %}" class="btn-action edit" title="Edit">✏️</a>
+          <a href="#" class="btn-action delete" title="Delete" onclick="deleteVendor({{ vendor.id }})">🗑️</a>
+        </div>
+      </div>
+
+      <div class="card-content">
+        <div class="vendor-info">
+          <label>Email</label>
+          <p><a href="mailto:{{ vendor.email }}">{{ vendor.email }}</a></p>
+        </div>
+        {% if vendor.phone %}
+        <div class="vendor-info">
+          <label>Phone</label>
+          <p><a href="tel:{{ vendor.phone }}">{{ vendor.phone }}</a></p>
+        </div>
+        {% endif %}
+        {% if vendor.address %}
+        <div class="vendor-info">
+          <label>Address</label>
+          <p>{{ vendor.address }}</p>
+        </div>
+        {% endif %}
+        {% if vendor.tax_id %}
+        <div class="vendor-info">
+          <label>Tax ID</label>
+          <p>{{ vendor.tax_id }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="card-footer">
+        <a href="{% url 'purchase_order:vendor_detail' vendor.id %}" class="btn btn-secondary">View Details</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🏢</div>
+    <h3>No Vendors Found</h3>
+    <p>Create your first vendor to get started.</p>
+    <a href="{% url 'purchase_order:vendor_create' %}" class="btn btn-primary">Add Vendor</a>
+  </div>
+  {% endif %}
+</section>
+
+<script>
+function deleteVendor(vendorId) {
+  if (confirm('Are you sure you want to delete this vendor?')) {
+    // Create a form and submit it
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/purchase-orders/vendors/${vendorId}/delete/`;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                     document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrfmiddlewaretoken';
+    input.value = csrfToken;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+</script>
+
+<style>
+.vendor-list-page { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+.list-header h1 { font-size: 32px; font-weight: 700; color: #111111; margin: 0; }
+.vendors-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.vendor-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s; }
+.vendor-card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+.card-header { padding: 16px; background: linear-gradient(135deg, #0f62fe 0%, #0353e9 100%); color: white; display: flex; justify-content: space-between; align-items: flex-start; }
+.card-header h3 { font-size: 16px; font-weight: 700; margin: 0; }
+.card-header a { color: white; text-decoration: none; }
+.card-header a:hover { text-decoration: underline; }
+.card-actions { display: flex; gap: 8px; }
+.btn-action { color: white; text-decoration: none; font-size: 16px; cursor: pointer; transition: 0.2s; display: inline-block; }
+.btn-action:hover { transform: scale(1.2); }
+.card-content { flex: 1; padding: 16px; border-bottom: 1px solid #e5e7eb; }
+.vendor-info { margin-bottom: 12px; }
+.vendor-info:last-child { margin-bottom: 0; }
+.vendor-info label { display: block; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.vendor-info p { font-size: 14px; color: #111111; margin: 0; }
+.vendor-info a { color: #0f62fe; text-decoration: none; }
+.vendor-info a:hover { text-decoration: underline; }
+.card-footer { padding: 12px 16px; background: #f9fafb; }
+.empty-state { text-align: center; padding: 60px 24px; background: white; border-radius: 12px; border: 1px solid #e5e7eb; }
+.empty-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state h3 { font-size: 20px; font-weight: 700; color: #111111; margin: 0 0 8px 0; }
+.empty-state p { color: #6b7280; margin: 0 0 24px 0; }
+.btn { padding: 10px 24px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.2s; width: 100%; text-align: center; }
+.btn-primary { background: #0f62fe; color: white; }
+.btn-primary:hover { background: #0353e9; }
+.btn-secondary { background: #f3f4f6; color: #111111; }
+.btn-secondary:hover { background: #e5e7eb; }
+@media (max-width: 768px) {
+  .vendors-grid { grid-template-columns: 1fr; }
+  .list-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,460 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}Quotations{% endblock %}
+
+{% block content %}
+<section class="quotation-list-page">
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Quotations</h1>
+      <p class="subtitle">Manage your product quotations</p>
+    </div>
+    <div class="header-actions">
+      <a href="{% url 'quotation:quotation_create' %}" class="btn btn-primary">+ New Quotation</a>
+    </div>
+  </div>
+
+  <!-- Filters & Search -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <form method="get" class="search-form">
+        <input type="text" name="search" placeholder="Search by quote number, customer, or email..." 
+               value="{{ request.GET.search }}" class="search-input">
+        <button type="submit" class="search-btn">Search</button>
+      </form>
+    </div>
+    
+    <div class="filter-group">
+      <form method="get" class="filter-form">
+        <select name="status" onchange="this.form.submit()" class="filter-select">
+          <option value="">All Statuses</option>
+          <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>Draft</option>
+          <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+          <option value="sent" {% if request.GET.status == 'sent' %}selected{% endif %}>Sent</option>
+          <option value="accepted" {% if request.GET.status == 'accepted' %}selected{% endif %}>Accepted</option>
+          <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+          <option value="expired" {% if request.GET.status == 'expired' %}selected{% endif %}>Expired</option>
+        </select>
+      </form>
+    </div>
+  </div>
+
+  <!-- Results Info -->
+  <div class="results-info">
+    <p>Showing <strong>{{ quotations|length }}</strong> quotation(s)</p>
+  </div>
+
+  <!-- Quotations Table -->
+  {% if quotations %}
+  <div class="table-container">
+    <table class="quotations-table">
+      <thead>
+        <tr>
+          <th>Quote #</th>
+          <th>Customer</th>
+          <th>Amount</th>
+          <th>Date</th>
+          <th>Valid Until</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for quotation in quotations %}
+        <tr class="table-row" onclick="window.location='{% url 'quotation:quotation_detail' quotation.id %}'" style="cursor: pointer;">
+          <td>
+            <span class="quote-number">{{ quotation.quote_number }}</span>
+          </td>
+          <td>
+            <div class="customer-info">
+              <div class="customer-name">{{ quotation.customer_name }}</div>
+              <div class="customer-email">{{ quotation.customer_email }}</div>
+            </div>
+          </td>
+          <td>
+            <span class="amount">${{ quotation.get_total|floatformat:2 }}</span>
+          </td>
+          <td>
+            <span class="date">{{ quotation.created_at|date:"M d, Y" }}</span>
+          </td>
+          <td>
+            <span class="date">
+              {% if quotation.valid_until %}
+                {{ quotation.valid_until|date:"M d, Y" }}
+              {% else %}
+                —
+              {% endif %}
+            </span>
+          </td>
+          <td>
+            <span class="status-badge status-{{ quotation.status|lower }}">
+              {{ quotation.get_status_display }}
+            </span>
+          </td>
+          <td class="actions-cell" onclick="event.stopPropagation();">
+            <div class="action-buttons">
+              <a href="{% url 'quotation:quotation_detail' quotation.id %}" class="btn-icon" title="View">
+                👁️
+              </a>
+              {% if quotation.status == 'draft' %}
+              <a href="{% url 'quotation:quotation_edit' quotation.id %}" class="btn-icon" title="Edit">
+                ✎
+              </a>
+              {% endif %}
+              <a href="{% url 'quotation:quotation_pdf' quotation.id %}" class="btn-icon" title="Download PDF" target="_blank">
+                📄
+              </a>
+              {% if quotation.status == 'draft' %}
+              <form action="{% url 'quotation:quotation_delete' quotation.id %}" method="post" class="inline-form" onsubmit="return confirm('Delete this quotation?');">
+                {% csrf_token %}
+                <button type="submit" class="btn-icon btn-danger" title="Delete">🗑️</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <h2>No quotations yet</h2>
+    <p>Start by creating a new quotation to begin managing your quotes.</p>
+    <a href="{% url 'quotation:quotation_create' %}" class="btn btn-primary">Create First Quotation</a>
+  </div>
+  {% endif %}
+</section>
+
+<style>
+.quotation-list-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.header-content h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: #111111;
+}
+
+.header-content .subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background: #0f62fe;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0d47a1;
+}
+
+.filters-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.search-box {
+  flex: 1;
+}
+
+.search-form {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #0f62fe;
+}
+
+.search-btn {
+  padding: 10px 20px;
+  background: #0f62fe;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.search-btn:hover {
+  background: #0d47a1;
+}
+
+.filter-group {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-select {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #0f62fe;
+}
+
+.results-info {
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.table-container {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.quotations-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.quotations-table thead {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.quotations-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 700;
+  color: #111111;
+}
+
+.quotations-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.2s;
+}
+
+.quotations-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.quotations-table td {
+  padding: 14px 16px;
+  color: #4b5563;
+}
+
+.quote-number {
+  font-weight: 600;
+  color: #0f62fe;
+}
+
+.customer-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-name {
+  font-weight: 600;
+  color: #111111;
+}
+
+.customer-email {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.amount {
+  font-weight: 700;
+  color: #14a44d;
+  font-size: 15px;
+}
+
+.date {
+  white-space: nowrap;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.status-badge.status-draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.status-pending {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.status-sent {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.status-accepted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge.status-expired {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.actions-cell {
+  text-align: center;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: white;
+  cursor: pointer;
+  font-size: 16px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: #f3f4f6;
+  border-color: #0f62fe;
+}
+
+.btn-icon.btn-danger:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.inline-form {
+  display: inline;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-state h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0 0 8px 0;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 24px 0;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .filters-bar {
+    grid-template-columns: 1fr;
+  }
+  
+  .search-form {
+    flex-direction: column;
+  }
+  
+  .quotations-table {
+    font-size: 12px;
+  }
+  
+  .quotations-table th,
+  .quotations-table td {
+    padding: 10px;
+  }
+  
+  .action-buttons {
+    flex-wrap: wrap;
+  }
+}
+</style>
+{% endblock %}

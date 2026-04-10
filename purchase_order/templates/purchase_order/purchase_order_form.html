@@ -1,0 +1,160 @@
+{% extends 'inquiry/base.html' %}
+{% load static %}
+{% block title %}{% if form.instance.id %}Edit{% else %}New{% endif %} Purchase Order{% endblock %}
+
+{% block content %}
+<section class="po-form-page">
+  <div class="form-header">
+    <h1>{% if form.instance.id %}Edit Purchase Order{% else %}New Purchase Order{% endif %}</h1>
+    <a href="{% url 'purchase_order:purchase_order_list' %}" class="btn btn-secondary">Back</a>
+  </div>
+
+  <form method="post" class="po-form" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+    <div class="error-message">
+      {% for error in form.non_field_errors %}
+      <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="form-container">
+      <div class="form-card">
+        <h3>Purchase Order Details</h3>
+        <div class="form-group-wrapper">
+          <div class="form-group">
+            <label for="{{ form.vendor.id_for_label }}">{{ form.vendor.label }}</label>
+            {{ form.vendor }}
+            {% if form.vendor.errors %}<div class="error">{{ form.vendor.errors }}</div>{% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.required_by.id_for_label }}">{{ form.required_by.label }}</label>
+            {{ form.required_by }}
+            {% if form.required_by.errors %}<div class="error">{{ form.required_by.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.subject.id_for_label }}">{{ form.subject.label }}</label>
+          {{ form.subject }}
+          {% if form.subject.errors %}<div class="error">{{ form.subject.errors }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+          {{ form.description }}
+          {% if form.description.errors %}<div class="error">{{ form.description.errors }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>Pricing</h3>
+        <div class="form-group-wrapper">
+          <div class="form-group">
+            <label for="{{ form.tax_rate.id_for_label }}">{{ form.tax_rate.label }}</label>
+            {{ form.tax_rate }}
+            {% if form.tax_rate.errors %}<div class="error">{{ form.tax_rate.errors }}</div>{% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.discount.id_for_label }}">{{ form.discount.label }}</label>
+            {{ form.discount }}
+            {% if form.discount.errors %}<div class="error">{{ form.discount.errors }}</div>{% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.discount_type.id_for_label }}">{{ form.discount_type.label }}</label>
+            {{ form.discount_type }}
+            {% if form.discount_type.errors %}<div class="error">{{ form.discount_type.errors }}</div>{% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.shipping_cost.id_for_label }}">{{ form.shipping_cost.label }}</label>
+            {{ form.shipping_cost }}
+            {% if form.shipping_cost.errors %}<div class="error">{{ form.shipping_cost.errors }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>Additional Information</h3>
+        <div class="form-group">
+          <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+          {{ form.notes }}
+          {% if form.notes.errors %}<div class="error">{{ form.notes.errors }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.terms.id_for_label }}">{{ form.terms.label }}</label>
+          {{ form.terms }}
+          {% if form.terms.errors %}<div class="error">{{ form.terms.errors }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>Items</h3>
+        <div id="items-list">
+          {% for item_form in items_formset %}
+          <div class="item-form">
+            {{ item_form.as_p }}
+            {% if item_form.errors %}<div class="error">{{ item_form.errors }}</div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" id="add-item-btn" class="btn btn-secondary">+ Add Item</button>
+      </div>
+
+      <div class="form-actions">
+        <a href="{% url 'purchase_order:purchase_order_list' %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Purchase Order</button>
+      </div>
+    </div>
+  </form>
+</section>
+
+<style>
+.po-form-page { max-width: 900px; margin: 0 auto; padding: 24px; }
+.form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+.form-header h1 { font-size: 28px; font-weight: 700; margin: 0; color: #111111; }
+.form-container { display: flex; flex-direction: column; gap: 24px; }
+.form-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 24px; }
+.form-card h3 { font-size: 16px; font-weight: 700; color: #111111; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #f3f4f6; }
+.form-group-wrapper { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+.form-group { display: flex; flex-direction: column; margin-bottom: 0; }
+.form-group label { font-size: 14px; font-weight: 600; color: #111111; margin-bottom: 8px; }
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea { padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: inherit; }
+.form-group input[type="text"]:focus,
+.form-group input[type="email"]:focus,
+.form-group input[type="number"]:focus,
+.form-group input[type="date"]:focus,
+.form-group select:focus,
+.form-group textarea:focus { outline: none; border-color: #0f62fe; box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.1); }
+.form-group textarea { resize: vertical; min-height: 100px; }
+.form-group select { cursor: pointer; }
+.error { color: #dc2626; font-size: 12px; margin-top: 4px; }
+.error-message { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; color: #991b1b; font-size: 14px; }
+.item-form { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+.item-form p { margin: 0 0 12px 0; display: flex; flex-direction: column; }
+.item-form label { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.item-form input, .item-form select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; }
+.form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+.btn { padding: 10px 24px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.2s; }
+.btn-primary { background: #0f62fe; color: white; }
+.btn-primary:hover { background: #0353e9; }
+.btn-secondary { background: #f3f4f6; color: #111111; }
+.btn-secondary:hover { background: #e5e7eb; }
+@media (max-width: 768px) {
+  .form-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .form-actions { flex-direction: column; }
+  .btn { width: 100%; text-align: center; }
+}
+</style>
+{% endblock %}

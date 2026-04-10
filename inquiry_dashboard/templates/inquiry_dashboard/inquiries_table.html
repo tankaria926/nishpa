@@ -1,0 +1,57 @@
+<table class="inquiries-table">
+  <thead>
+    <tr>
+      <th class="col-id">ID</th>
+      <th class="col-name">Name</th>
+      <th class="col-email">Email</th>
+      <th class="col-phone">Phone</th>
+      <th class="col-items">Items</th>
+      <th class="col-status">Status</th>
+      <th class="col-date">Date</th>
+      <th class="col-action">Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for inquiry in inquiries %}
+    <tr class="inquiry-row" data-inquiry-id="{{ inquiry.id }}">
+      <td class="col-id">
+        <a href="{% url 'inquiry_dashboard:inquiry_detail' inquiry.id %}" class="inquiry-link">#{{ inquiry.id }}</a>
+      </td>
+      <td class="col-name">
+        <strong>{{ inquiry.full_name }}</strong>
+      </td>
+      <td class="col-email">
+        <a href="mailto:{{ inquiry.email }}" class="email-link">{{ inquiry.email }}</a>
+      </td>
+      <td class="col-phone">
+        {% if inquiry.phone %}
+          <a href="tel:{{ inquiry.phone }}" class="phone-link">{{ inquiry.phone }}</a>
+        {% else %}
+          <span class="text-muted">-</span>
+        {% endif %}
+      </td>
+      <td class="col-items">
+        <span class="badge badge-info">{{ inquiry.item_count }} item{{ inquiry.item_count|pluralize }}</span>
+      </td>
+      <td class="col-status">
+        <select class="status-select" data-inquiry-id="{{ inquiry.id }}">
+          {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if inquiry.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </td>
+      <td class="col-date">
+        <span class="date">{{ inquiry.created_at|date:"M d, Y" }}</span>
+        <span class="time">{{ inquiry.created_at|time:"H:i" }}</span>
+      </td>
+      <td class="col-action">
+        <a href="{% url 'inquiry_dashboard:inquiry_detail' inquiry.id %}" class="btn-view">View</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="8" class="empty-message">No inquiries found matching your filters.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
